@@ -42,16 +42,16 @@ LectureLens runs one semantic query over everything you're allowed to see. It re
 
 | | |
 |---|---|
-| 🔎 **Semantic search** | Finds explanations by meaning, not exact wording. Up to 3 passages per lecture, each with a timestamp |
-| 🔤 **Keyword search** | Full-text mode for exact terms such as course codes, acronyms and names |
-| ▶️ **Jump to timestamp** | YouTube player plus the full transcript. Click any passage to seek to it |
-| 🔒 **Locked discovery** | Matching lectures outside your access are shown with a thumbnail, course and excerpt only |
-| 📨 **Access requests** | Request one lecture with a reason. The instructor who uploaded it approves (7 days by default) or rejects |
-| 📋 **My requests** | Pending / approved / rejected, with "active until …" or "expired" |
-| 📥 **Instructor inbox** | Pending requests with a badge count, approve with a custom duration |
-| 🧩 **Transcript ingestion** | Upload `.srt` / `.vtt`. A stored procedure chunks it, and the app embeds each chunk |
-| 📊 **Course analytics** | Content coverage, search activity, access demand, and questions nobody's lectures answer |
-| 🛡️ **Role-based access** | Student, instructor and admin, enforced **inside PostgreSQL** and not only in the API |
+|  **Semantic search** | Finds explanations by meaning, not exact wording. Up to 3 passages per lecture, each with a timestamp |
+|  **Keyword search** | Full-text mode for exact terms such as course codes, acronyms and names |
+|  **Jump to timestamp** | YouTube player plus the full transcript. Click any passage to seek to it |
+|  **Locked discovery** | Matching lectures outside your access are shown with a thumbnail, course and excerpt only |
+|  **Access requests** | Request one lecture with a reason. The instructor who uploaded it approves (7 days by default) or rejects |
+|  **My requests** | Pending / approved / rejected, with "active until …" or "expired" |
+|  **Instructor inbox** | Pending requests with a badge count, approve with a custom duration |
+|  **Transcript ingestion** | Upload `.srt` / `.vtt`. A stored procedure chunks it, and the app embeds each chunk |
+|  **Course analytics** | Content coverage, search activity, access demand, and questions nobody's lectures answer |
+|  **Role-based access** | Student, instructor and admin, enforced **inside PostgreSQL** and not only in the API |
 
 ## How access works
 
@@ -131,17 +131,7 @@ flowchart LR
 2. **Search:** the query is embedded with the same model. `search_lectures()` resolves the caller's scope, takes the 200 nearest chunks inside it by cosine distance (`<=>`), drops anything with distance above 0.55, and keeps the 3 best passages for each of the top 10 lectures.
 3. **Locked discovery:** if nothing in scope matches, the same search runs over lectures *outside* the scope. It returns one locked row per lecture, with no video id and no timestamp.
 
-## Project status
 
-| Area | Status |
-|---|---|
-| Application model ([`MODEL.md`](MODEL.md)) | ✅ Done |
-| Design spec, ER diagram, relational schema | ✅ Done ([docs](#documentation)) |
-| SQL migrations: tables, triggers, procedures, views, roles, RLS | ✅ Done, **44/44 database tests passing** |
-| Important queries (JOIN / GROUP BY / HAVING / subqueries / window) | ✅ Done |
-| Next.js app: auth, search, player, requests, inbox, admin, analytics | 🚧 In progress |
-| Seed data with real lecture transcripts | 🚧 In progress |
-| Search relevance evaluation (Hit@3, MRR) | ⏳ Planned |
 
 ## Getting started
 
@@ -228,16 +218,9 @@ npm run dev                    # http://localhost:3000
 
 | Member | Owns |
 |---|---|
-| **Member A** — *name, SRN* | Content, ingestion & search: courses/lectures/transcripts schema, chunking procedure, embeddings, vector + full-text search, search & player UI |
-| **Member B** — *name, SRN* | Users, access control & analytics: users/enrollment/requests schema, access functions, triggers, approval transactions, roles + RLS, auth, requests/inbox/admin/analytics UI |
+| **Member A** — *Krish* | Content, ingestion & search: courses/lectures/transcripts schema, chunking procedure, embeddings, vector + full-text search, search & player UI |
+| **Member B** — *Vishanth * | Users, access control & analytics: users/enrollment/requests schema, access functions, triggers, approval transactions, roles + RLS, auth, requests/inbox/admin/analytics UI |
 
-Each migration file has a single owner. See §18 of the design document for the full split.
-
-## Documentation
-
-- [`MODEL.md`](MODEL.md): what LectureLens does and which rules the database owns
-- [`LectureLens_Design_and_Work_Plan.pdf`](LectureLens_Design_and_Work_Plan.pdf): ER diagram, relational schema, data dictionary, DDL, vector design, architecture, tests, work division
-- [`docs/relational_schema.pdf`](docs/relational_schema.pdf): relational schema diagram with all keys and constraints
 
 ---
 
