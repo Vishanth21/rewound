@@ -218,8 +218,8 @@ npm run dev                    # http://localhost:3000
 
 | Member | Owns |
 |---|---|
-| **Member A** — *Krish* | Content, ingestion & search: courses/lectures/transcripts schema, chunking procedure, embeddings, vector + full-text search, search & player UI |
-| **Member B** — *Vishanth * | Users, access control & analytics: users/enrollment/requests schema, access functions, triggers, approval transactions, roles + RLS, auth, requests/inbox/admin/analytics UI |
+| **Member A** — Krish | Content, ingestion & search: courses/lectures/transcripts schema, chunking procedure, embeddings, vector + full-text search, search & player UI |
+| **Member B** — Vishanth | Users, access control & analytics: users/enrollment/requests schema, access functions, triggers, approval transactions, roles + RLS, auth, requests/inbox/admin/analytics UI |
 
 
 ---
