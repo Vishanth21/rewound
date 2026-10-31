@@ -21,6 +21,7 @@ import re
 import shutil
 import sys
 import tempfile
+import threading
 from pathlib import Path
 
 import psycopg2
@@ -177,6 +178,7 @@ def main():
     conn = psycopg2.connect(server.get_uri())
     conn.autocommit = True
     cur = conn.cursor()
+    dsn = server.get_uri()
 
     cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
     pgv = one("SELECT extversion FROM pg_extension WHERE extname = 'vector'")
@@ -700,6 +702,58 @@ def main():
         n = one("SELECT count(*) FROM transcript_chunk WHERE lecture_id = %s", (state["l2"],))
         assert n == 0 and r == []
         return "chunks left=%d; search for its topic now returns %d rows" % (n, len(r))
+
+    @check("T55", "Transaction", "Two clients deciding one request at once: one wins, the other sees 'already approved'", owner="B")
+    def _():
+        # req["id2"] (Ben -> l1) is still pending: T27 raised it and nothing decides it.
+        # This runs last because approving it grants Ben access to l1, which T30 and T34
+        # rely on NOT being the case.
+        rid = req["id2"]
+        out = {}
+        barrier = threading.Barrier(2, timeout=15)
+
+        def decide(tag, uid, days):
+            c = psycopg2.connect(dsn)
+            try:
+                c.autocommit = False
+                k = c.cursor()
+                k.execute("SET ROLE lecturelens_app")
+                k.execute("SELECT set_config('lecturelens.user_id', %s, true)", (str(uid),))
+                barrier.wait()                      # both transactions are open and ready
+                try:
+                    k.execute("CALL decide_request(%s, true, %s)", (rid, days))
+                except psycopg2.Error as e:
+                    c.rollback()
+                    out[tag] = ("error", first_line(e))
+                    return
+                c.commit()                          # releases the FOR UPDATE lock
+                out[tag] = ("ok", days)
+            except threading.BrokenBarrierError:
+                out[tag] = ("error", "barrier timeout")
+            finally:
+                c.close()
+
+        ths = [threading.Thread(target=decide, args=("rao", U["rao"], 7)),
+               threading.Thread(target=decide, args=("admin", U["admin"], 30))]
+        for t in ths:
+            t.start()
+        for t in ths:
+            t.join()
+
+        ok = [t for t, v in out.items() if v[0] == "ok"]
+        bad = [t for t, v in out.items() if v[0] == "error"]
+        assert len(ok) == 1 and len(bad) == 1, out
+        assert "already approved" in out[bad[0]][1], out
+
+        # Exactly one decision stuck: no lost update, and the winner's duration is the one stored.
+        as_owner()
+        st, decider, days_left = rows(
+            "SELECT status, decided_by, round(extract(epoch FROM (expires_at - now()))/86400) "
+            "FROM access_request WHERE request_id = %s", (rid,))[0]
+        assert st == "approved", st
+        assert decider == (U["rao"] if ok[0] == "rao" else U["admin"]), (decider, ok[0])
+        assert int(days_left) == out[ok[0]][1], (days_left, out[ok[0]][1])
+        return "winner=%s (%dd); loser=%r" % (ok[0], days_left, out[bad[0]][1])
 
     # ---------------------------------------------------------------- report
     order = lambda r: (r["id"][0] != "T", int(re.sub(r"\D", "", r["id"]) or 0))  # noqa: E731
