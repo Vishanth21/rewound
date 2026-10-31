@@ -1,0 +1,95 @@
+1
+00:00:02,000 --> 00:00:13,154
+Today's topic is normalization, the discipline that stops your tables from lying to you. We begin with the problem it solves: redundancy and the anomalies that come with it.
+
+2
+00:00:13,554 --> 00:00:27,015
+Imagine one big table of orders that repeats the customer's name, address and phone number on every row. Change the phone number and you must find and fix every copy, or the data contradicts itself.
+
+3
+00:00:27,415 --> 00:00:42,031
+There are three classic anomalies. An update anomaly is the inconsistency just described. An insertion anomaly means you cannot record a customer who has no orders yet. A deletion anomaly means deleting the last order loses the customer.
+
+4
+00:00:42,431 --> 00:00:53,200
+The theory rests on functional dependencies. We write X arrow Y when the values of X determine the value of Y. For example, student id determines student name.
+
+5
+00:00:53,600 --> 00:01:07,062
+Given a set of dependencies we compute the closure of an attribute set, written X plus, by repeatedly adding every attribute that can be derived. If X plus contains all attributes, X is a superkey.
+
+6
+00:01:07,462 --> 00:01:19,000
+A candidate key is a minimal superkey, one where removing any attribute destroys the property. A table may have several candidate keys, and we choose one as the primary key.
+
+7
+00:01:19,400 --> 00:01:29,015
+First normal form says every column holds a single atomic value. No lists of phone numbers in one cell and no repeating groups across columns.
+
+8
+00:01:29,415 --> 00:01:42,108
+Second normal form applies when the key has several columns. Every non key attribute must depend on the whole key, not on just part of it. A partial dependency violates second normal form.
+
+9
+00:01:42,508 --> 00:01:55,969
+For instance, in a table keyed by student id and course id, the student's name depends only on the student id. That is a partial dependency, so we move student details to their own table.
+
+10
+00:01:56,369 --> 00:02:10,985
+Third normal form removes transitive dependencies. A non key attribute must not depend on another non key attribute. If zip code determines city, then city should not sit in the same table as zip code and the key.
+
+11
+00:02:11,385 --> 00:02:21,385
+A handy slogan for third normal form: every non key attribute must provide a fact about the key, the whole key, and nothing but the key.
+
+12
+00:02:21,785 --> 00:02:36,400
+Boyce Codd normal form, or BCNF, is a stronger rule. For every non trivial functional dependency X arrow Y, the left side X must be a superkey. Third normal form allows a few exceptions that BCNF does not.
+
+13
+00:02:36,800 --> 00:02:49,877
+The standard exception: a table of student, subject and teacher where each teacher teaches one subject. Teacher determines subject, but teacher is not a superkey. It is in third normal form but not BCNF.
+
+14
+00:02:50,277 --> 00:03:02,200
+To reach BCNF we decompose the table. Take the violating dependency X arrow Y and split into one table with X and Y, and another with the remaining attributes plus X.
+
+15
+00:03:02,600 --> 00:03:17,600
+Decomposition must be lossless. When we join the pieces back together we must get exactly the original rows, no more and no fewer. A decomposition is lossless if the common attributes form a key of at least one piece.
+
+16
+00:03:18,000 --> 00:03:26,077
+A second desirable property is dependency preservation, meaning every original dependency can still be checked within a single table without joins.
+
+17
+00:03:26,477 --> 00:03:38,015
+Sadly BCNF decomposition is always lossless but may not preserve dependencies, while third normal form decomposition can always achieve both. This is why many practitioners aim for third normal form.
+
+18
+00:03:38,415 --> 00:03:48,800
+There are higher forms. Fourth normal form deals with multivalued dependencies, such as an employee who has independent sets of skills and languages stored in one table.
+
+19
+00:03:49,200 --> 00:03:59,585
+Normalization is not free. More tables mean more joins, and joins cost time. Read heavy systems such as analytics often denormalize on purpose, accepting redundancy for speed.
+
+20
+00:03:59,985 --> 00:04:12,677
+A sensible workflow is to design in third normal form or BCNF first, measure real queries, and denormalize only specific hot spots, keeping the redundant copy in sync with triggers or application logic.
+
+21
+00:04:13,077 --> 00:04:29,615
+Let me work an example. Table R with attributes A, B, C, D and dependencies A arrow B, and B arrow C. First compute A plus: it gives A, B, C. We still miss D, so the key must include A and D.
+
+22
+00:04:30,015 --> 00:04:45,015
+Because B arrow C has a left side that is not a superkey, the table violates both third normal form and BCNF. We split off B and C into their own table and keep A, B and D together.
+
+23
+00:04:45,415 --> 00:05:00,415
+Check the result: the join on B is lossless because B is a key in the new table. The dependency A arrow B lives in the first table and B arrow C in the second, so both are preserved.
+
+24
+00:05:00,815 --> 00:05:12,354
+To summarize: dependencies reveal redundancy; normal forms from first to BCNF remove it step by step; decompositions must be lossless; and denormalization is a deliberate performance trade, not an accident.

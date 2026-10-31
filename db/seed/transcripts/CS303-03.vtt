@@ -1,0 +1,70 @@
+WEBVTT
+
+00:00:02.000 --> 00:00:09.692
+Today we study how to measure a classifier, because choosing the wrong metric can make a useless model look excellent.
+
+00:00:10.092 --> 00:00:23.169
+Consider a model that detects a rare disease present in one percent of patients. A model that always predicts healthy is ninety nine percent accurate and completely worthless. Accuracy misleads when classes are imbalanced.
+
+00:00:23.569 --> 00:00:32.800
+The confusion matrix gives the full picture. It counts true positives, false positives, true negatives and false negatives, comparing predicted classes against actual classes.
+
+00:00:33.200 --> 00:00:45.892
+A false positive is a healthy person flagged as sick, also called a type one error. A false negative is a sick person missed, a type two error. Their costs are rarely equal.
+
+00:00:46.292 --> 00:00:58.600
+Precision is the fraction of predicted positives that are truly positive: true positives divided by true positives plus false positives. It answers: when the model says yes, how often is it right?
+
+00:00:59.000 --> 00:01:13.615
+Recall, also called sensitivity or true positive rate, is the fraction of actual positives that the model finds: true positives divided by true positives plus false negatives. It answers: of all real cases, how many did we catch?
+
+00:01:14.015 --> 00:01:26.323
+Specificity is the true negative rate, the fraction of actual negatives correctly identified. The false positive rate is one minus specificity, and it appears on the horizontal axis of the ROC curve.
+
+00:01:26.723 --> 00:01:37.108
+Precision and recall pull in opposite directions. Lowering the decision threshold catches more positives, which raises recall, but also lets in more false alarms, which lowers precision.
+
+00:01:37.508 --> 00:01:50.200
+The F1 score combines the two using the harmonic mean: two times precision times recall divided by their sum. Because it is a harmonic mean, it is low whenever either component is low.
+
+00:01:50.600 --> 00:02:04.446
+When recall matters more than precision, as in cancer screening, use the F beta score with beta greater than one. When precision matters more, as in spam filtering of important mail, use beta less than one.
+
+00:02:04.846 --> 00:02:17.154
+Most classifiers output a probability, and we choose a threshold, often zero point five, to turn it into a class. Changing the threshold moves us along a curve of possible trade offs.
+
+00:02:17.554 --> 00:02:30.246
+The ROC curve plots true positive rate against false positive rate as the threshold sweeps from one to zero. A perfect classifier hugs the top left corner. A random classifier follows the diagonal.
+
+00:02:30.646 --> 00:02:43.723
+The area under the ROC curve, or AUC, summarizes the curve in one number. It equals the probability that a randomly chosen positive example receives a higher score than a randomly chosen negative one.
+
+00:02:44.123 --> 00:02:55.277
+An AUC of one point zero is perfect and zero point five is no better than guessing. AUC is useful because it does not depend on a single threshold.
+
+00:02:55.677 --> 00:03:08.369
+However, with heavy class imbalance the ROC curve can look optimistic, because the false positive rate has a huge number of negatives in its denominator. The precision recall curve is more informative then.
+
+00:03:08.769 --> 00:03:19.923
+The precision recall curve plots precision against recall for every threshold. The area under it, or average precision, is the preferred summary for rare event detection such as fraud.
+
+00:03:20.323 --> 00:03:31.092
+For multiclass problems we compute metrics per class and then average. Macro averaging gives every class equal weight, while micro averaging pools all decisions, so frequent classes dominate.
+
+00:03:31.492 --> 00:03:41.108
+Weighted averaging sits in between: it averages per class scores weighted by how many true examples each class has. Always report which averaging you used.
+
+00:03:41.508 --> 00:03:53.046
+For regression we use different metrics. Mean absolute error is robust and easy to interpret. Root mean squared error penalizes large errors. R squared tells the fraction of variance explained.
+
+00:03:53.446 --> 00:04:04.985
+Calibration asks whether predicted probabilities are honest. Among all cases where the model says seventy percent, about seventy percent should actually be positive. Reliability diagrams and Platt scaling help here.
+
+00:04:05.385 --> 00:04:18.077
+Choose the threshold using the business cost. If a missed fraud costs a thousand rupees and a false alarm costs ten, set the threshold to minimize expected total cost, not to maximize accuracy.
+
+00:04:18.477 --> 00:04:28.092
+Finally, estimate uncertainty. A single test score is noisy, so report confidence intervals using cross validation or bootstrapping, especially when the test set is small.
+
+00:04:28.492 --> 00:04:40.415
+In summary: look beyond accuracy; use the confusion matrix; understand precision, recall and F1; use ROC AUC for balanced problems and precision recall curves for imbalanced ones; pick thresholds by cost.

@@ -1,0 +1,91 @@
+1
+00:00:02,000 --> 00:00:13,923
+Today we study how an operating system shares one processor among many programs. We start with the basic abstraction: the process, a program in execution with its own memory and state.
+
+2
+00:00:14,323 --> 00:00:26,246
+A process has code, data, a heap, a stack and a set of registers. The operating system keeps all this bookkeeping in a process control block, or PCB, one per process.
+
+3
+00:00:26,646 --> 00:00:38,569
+A process moves between states: new, ready, running, waiting and terminated. Ready means it could run if given the processor. Waiting means it is blocked on something such as disk input.
+
+4
+00:00:38,969 --> 00:00:50,892
+A thread is a lighter unit of execution inside a process. Threads of one process share the same address space and open files but each has its own stack and registers.
+
+5
+00:00:51,292 --> 00:01:04,369
+When the operating system switches the processor from one process to another, it performs a context switch. It saves the registers into the old PCB and loads the saved registers of the new process.
+
+6
+00:01:04,769 --> 00:01:14,385
+Context switches are pure overhead because no useful work happens while we switch. Cache contents also become less useful, so switching too often hurts performance.
+
+7
+00:01:14,785 --> 00:01:24,015
+The scheduler decides which ready process runs next. We judge schedulers with several metrics: CPU utilization, throughput, turnaround time, waiting time and response time.
+
+8
+00:01:24,415 --> 00:01:36,723
+Turnaround time is from submission to completion. Waiting time is the total time spent in the ready queue. Response time is from submission to the first response, which matters for interactive users.
+
+9
+00:01:37,123 --> 00:01:50,200
+The simplest policy is first come first served. It is easy to implement with a queue, but a long job at the front makes everyone behind it wait. This is called the convoy effect.
+
+10
+00:01:50,600 --> 00:02:04,062
+Shortest job first picks the process with the smallest next CPU burst. It is provably optimal for average waiting time, but we cannot know the next burst in advance, so we predict it from history.
+
+11
+00:02:04,462 --> 00:02:17,154
+The preemptive version of shortest job first is called shortest remaining time first. If a new process arrives with a shorter burst than what remains of the current one, it takes the processor.
+
+12
+00:02:17,554 --> 00:02:28,708
+Round robin is designed for time sharing. Each process gets a small slice of time called the time quantum, and then goes to the back of the ready queue.
+
+13
+00:02:29,108 --> 00:02:46,800
+Choosing the quantum is a trade off. If it is too large, round robin degenerates into first come first served. If it is too small, we waste time on context switches. A common rule is that eighty percent of bursts should be shorter than the quantum.
+
+14
+00:02:47,200 --> 00:02:58,738
+Priority scheduling gives each process a priority number and runs the highest priority first. It can be preemptive or non preemptive, and is natural when some jobs are more urgent.
+
+15
+00:02:59,138 --> 00:03:11,446
+The danger of priority scheduling is starvation. A low priority process may wait forever if high priority processes keep arriving. The classic remedy is aging: gradually raise the priority of waiting processes.
+
+16
+00:03:11,846 --> 00:03:23,385
+Multilevel queue scheduling splits the ready queue into several queues, for example system processes, interactive processes and batch jobs, each with its own algorithm and a fixed priority between queues.
+
+17
+00:03:23,785 --> 00:03:38,015
+The multilevel feedback queue lets processes move between queues. A process that uses its whole quantum is demoted to a lower queue, while one that waits a long time is promoted. This favours short and interactive jobs.
+
+18
+00:03:38,415 --> 00:03:53,800
+Let us work an example with round robin and quantum four. Processes P1, P2 and P3 have bursts of ten, four and six, all arriving at time zero. P1 runs first for four units, then P2 finishes, then P3 runs.
+
+19
+00:03:54,200 --> 00:04:06,123
+We draw a Gantt chart and compute waiting times: for each process, waiting time equals completion time minus burst time minus arrival time. Averaging gives the figure we compare across algorithms.
+
+20
+00:04:06,523 --> 00:04:19,215
+On multiprocessor systems we also decide which core runs which process. Processor affinity keeps a process on the same core so its cache stays warm, while load balancing moves work to idle cores.
+
+21
+00:04:19,615 --> 00:04:29,231
+Real time systems add deadlines. Hard real time systems must never miss one, and use algorithms such as rate monotonic scheduling or earliest deadline first.
+
+22
+00:04:29,631 --> 00:04:41,938
+Linux today uses the completely fair scheduler, which tracks how much processor time each task has received and always runs the task that has received the least, using a red black tree.
+
+23
+00:04:42,338 --> 00:04:57,723
+Summary: processes and threads are the units of scheduling; context switches cost time; first come first served is simple but suffers convoys; shortest job first is optimal but needs predictions; round robin shares time; priorities risk starvation, which aging fixes.

@@ -1,0 +1,95 @@
+1
+00:00:02,000 --> 00:00:12,385
+Today's topic is deadlock, a situation where a set of processes are all waiting for resources held by one another, so none of them can ever proceed.
+
+2
+00:00:12,785 --> 00:00:24,323
+Picture two processes. Process one holds the printer and waits for the scanner. Process two holds the scanner and waits for the printer. Both wait forever. That is a deadlock.
+
+3
+00:00:24,723 --> 00:00:35,877
+For a deadlock to occur, four conditions must hold at the same time, known as the Coffman conditions. If we can break any one of them, deadlock cannot happen.
+
+4
+00:00:36,277 --> 00:00:49,354
+The first is mutual exclusion: at least one resource can be used by only one process at a time. The second is hold and wait: a process holds some resources while waiting for others.
+
+5
+00:00:49,754 --> 00:01:04,369
+The third is no preemption: a resource cannot be forcibly taken away from the process holding it. The fourth is circular wait: there is a cycle of processes where each waits for a resource held by the next.
+
+6
+00:01:04,769 --> 00:01:19,769
+We model this with a resource allocation graph. Processes are circles, resources are rectangles. An edge from a resource to a process means the process holds it, and an edge from a process to a resource means a request.
+
+7
+00:01:20,169 --> 00:01:34,015
+If the graph has no cycle, there is no deadlock. If it has a cycle and every resource has a single instance, there is a deadlock. With multiple instances, a cycle is necessary but not sufficient.
+
+8
+00:01:34,415 --> 00:01:45,185
+There are four strategies. We can ignore the problem, prevent deadlocks by design, avoid them by careful allocation, or detect them and recover. Let us go through them.
+
+9
+00:01:45,585 --> 00:01:58,662
+Deadlock prevention attacks one of the four conditions. To break hold and wait, require a process to request all its resources at once before it starts, or to release everything before asking for more.
+
+10
+00:01:59,062 --> 00:02:14,446
+To break no preemption, allow the system to take resources away: if a process cannot get what it needs, it releases what it holds and restarts later. This works for resources whose state can be saved, like memory and registers.
+
+11
+00:02:14,846 --> 00:02:28,692
+To break circular wait, impose a total ordering on resource types and require every process to request resources in increasing order. A cycle would need some process to request a lower numbered resource, which is forbidden.
+
+12
+00:02:29,092 --> 00:02:40,246
+Mutual exclusion is usually impossible to break because some resources, like a printer, are inherently non shareable. Spooling can help by letting only one daemon actually own the printer.
+
+13
+00:02:40,646 --> 00:02:54,877
+Prevention can waste resources and reduce concurrency. Deadlock avoidance is more flexible: the system needs advance information about the maximum resources each process may request, and grants a request only if the result is a safe state.
+
+14
+00:02:55,277 --> 00:03:09,123
+A state is safe if there exists an order, a safe sequence, in which every process can obtain its maximum demand and finish. An unsafe state does not mean deadlock, but it means deadlock is possible.
+
+15
+00:03:09,523 --> 00:03:20,292
+The Banker's algorithm implements avoidance. It keeps matrices for available resources, maximum demand, current allocation and remaining need, and checks whether granting a request leaves a safe sequence.
+
+16
+00:03:20,692 --> 00:03:34,154
+To test safety, find a process whose remaining need is at most the available resources, pretend it runs to completion and returns its allocation, then repeat. If all processes can finish, the state is safe.
+
+17
+00:03:34,554 --> 00:03:49,169
+Let us run a small example with five processes and three resource types. Available is three, three and two. We find process one can finish, release its resources, then process three, and so on, producing a safe sequence.
+
+18
+00:03:49,569 --> 00:04:01,108
+Deadlock detection takes the opposite approach: let deadlocks happen and then find them. With single instance resources we build a wait for graph and run a cycle detection algorithm periodically.
+
+19
+00:04:01,508 --> 00:04:12,277
+With multiple instances we use a detection algorithm much like the Banker's algorithm, using current requests instead of maximum needs. Processes that cannot finish are reported as deadlocked.
+
+20
+00:04:12,677 --> 00:04:26,138
+Once we detect deadlock, we must recover. One option is process termination: abort all deadlocked processes, or abort them one at a time until the cycle disappears, choosing victims by priority, progress or resources held.
+
+21
+00:04:26,538 --> 00:04:40,385
+The other option is resource preemption: take resources from some processes and give them to others. We must pick a victim, roll the process back to a safe state, and guard against starvation by counting rollbacks.
+
+22
+00:04:40,785 --> 00:04:53,092
+Many real systems, including Unix and Windows, use the ostrich approach and ignore deadlock, because it is rare and prevention is costly. Database systems, in contrast, detect deadlocks and abort a transaction.
+
+23
+00:04:53,492 --> 00:05:05,031
+A related problem is livelock. Processes are not blocked, they keep changing state in response to each other without making progress, like two people repeatedly stepping aside in a corridor.
+
+24
+00:05:05,431 --> 00:05:17,738
+To summarize: deadlock needs mutual exclusion, hold and wait, no preemption and circular wait. We can prevent it by breaking a condition, avoid it with the Banker's algorithm, or detect and recover.

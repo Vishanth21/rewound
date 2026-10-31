@@ -1,0 +1,87 @@
+1
+00:00:02,000 --> 00:00:11,615
+Today we confront the central problem of machine learning: building models that work on new data, not just on the examples they were trained on.
+
+2
+00:00:12,015 --> 00:00:26,631
+Suppose we fit a curve to ten data points. A straight line may miss the pattern, which we call underfitting. A tenth degree polynomial can pass exactly through every point, but wiggles wildly between them. That is overfitting.
+
+3
+00:00:27,031 --> 00:00:40,108
+An underfit model has high error on both training and test data. An overfit model has very low training error but much higher test error. The gap between them is the signature of overfitting.
+
+4
+00:00:40,508 --> 00:00:54,354
+We therefore never judge a model on its training data. We hold out a validation set for tuning decisions and a test set that we touch only once at the very end to report final performance.
+
+5
+00:00:54,754 --> 00:01:07,446
+When data is scarce, we use k fold cross validation. Split the data into k parts, train on k minus one parts, validate on the remaining one, rotate, and average the k scores.
+
+6
+00:01:07,846 --> 00:01:17,846
+There are several remedies for overfitting. The simplest is to get more training data, since a complex model needs many examples to pin down its parameters.
+
+7
+00:01:18,246 --> 00:01:30,169
+The second is to use a simpler model, with fewer parameters or lower polynomial degree. The third is regularization, which keeps a complex model but discourages it from using large weights.
+
+8
+00:01:30,569 --> 00:01:44,415
+Regularization adds a penalty term to the loss. The new objective is the original loss plus lambda times a measure of the size of the weights. Lambda is a hyperparameter that sets how strongly we penalize.
+
+9
+00:01:44,815 --> 00:01:55,585
+L2 regularization, also called ridge regression or weight decay, penalizes the sum of squared weights. It shrinks all weights smoothly toward zero but rarely makes any exactly zero.
+
+10
+00:01:55,985 --> 00:02:09,062
+L1 regularization, known as lasso, penalizes the sum of absolute values of the weights. Its geometry has corners on the axes, so it drives many weights exactly to zero and performs automatic feature selection.
+
+11
+00:02:09,462 --> 00:02:20,231
+Elastic net combines both penalties. It is useful when features are correlated: lasso tends to pick one of a group arbitrarily, while the L2 part keeps them together.
+
+12
+00:02:20,631 --> 00:02:35,631
+Choosing lambda is a classic cross validation task. Try values on a logarithmic grid, such as zero point zero zero one, zero point zero one, zero point one, and one, and pick the one with the best validation score.
+
+13
+00:02:36,031 --> 00:02:47,569
+If lambda is zero we have no regularization and may overfit. If lambda is huge, all weights collapse toward zero and the model underfits. The best value lies in between.
+
+14
+00:02:47,969 --> 00:03:01,431
+In neural networks we have more tools. Dropout randomly switches off a fraction of neurons during each training step, which prevents units from co adapting and acts like training an ensemble of many smaller networks.
+
+15
+00:03:01,831 --> 00:03:13,369
+Early stopping monitors the validation loss during training and halts when it stops improving, even though the training loss keeps falling. It is a cheap and effective form of regularization.
+
+16
+00:03:13,769 --> 00:03:25,308
+Data augmentation creates extra training examples by transforming existing ones, for instance flipping, cropping or rotating images, or adding noise. It teaches the model invariances and effectively increases the dataset.
+
+17
+00:03:25,708 --> 00:03:34,938
+Batch normalization and weight decay also have mild regularizing effects. In modern practice we usually combine several techniques rather than relying on only one.
+
+18
+00:03:35,338 --> 00:03:48,415
+Let us look at a ridge regression example. With lambda zero the fitted polynomial has coefficients in the thousands. Increasing lambda shrinks them to modest values, and the curve becomes smooth and generalizes better.
+
+19
+00:03:48,815 --> 00:04:05,354
+A learning curve plots training and validation error against the number of training examples. If both are high and close together, we have high bias and need a richer model. A large gap means high variance and we need regularization or more data.
+
+20
+00:04:05,754 --> 00:04:17,292
+Beware of data leakage, which causes overly optimistic estimates. If you scale features or select features using the whole dataset before splitting, information from the test set leaks into training.
+
+21
+00:04:17,692 --> 00:04:29,231
+Always fit preprocessing steps on the training data only, then apply them to validation and test data. Pipelines in scikit learn make this easy and prevent mistakes during cross validation.
+
+22
+00:04:29,631 --> 00:04:43,092
+In summary: overfitting means memorizing noise; detect it by comparing training and validation error; fight it with more data, simpler models, L1 or L2 regularization, dropout, early stopping and augmentation; tune lambda by cross validation.
