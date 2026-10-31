@@ -391,7 +391,8 @@ def main():
     for b in blocks:
         qid = re.match(r"-- (Q\d+)\.", b).group(1)
 
-        @check(qid, "Queries", b.splitlines()[0].split(".", 1)[1].strip(), owner="A")
+        @check(qid, "Queries", b.splitlines()[0].split(".", 1)[1].strip(),
+               owner="B" if qid in ("Q2", "Q4", "Q6", "Q7", "Q8") else "A")
         def _(b=b):
             cur.execute(b)
             n = len(cur.fetchall()) if cur.description else 0

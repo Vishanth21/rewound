@@ -80,3 +80,45 @@ JOIN lecture l           ON l.lecture_id = c2.lecture_id
 WHERE c1.chunk_id = 1 AND c1.embedding IS NOT NULL
 ORDER BY c2.embedding <=> c1.embedding
 LIMIT 5;
+
+-- Q2. Admin: enrolled students who have never searched (EXISTS / NOT EXISTS subqueries)
+SELECT u.full_name, u.email
+FROM app_user u
+WHERE u.role = 'student'
+  AND EXISTS     (SELECT 1 FROM enrollment e WHERE e.student_id = u.user_id)
+  AND NOT EXISTS (SELECT 1 FROM search_log s WHERE s.user_id   = u.user_id)
+ORDER BY u.full_name;
+
+-- Q4. Approver responsiveness vs the overall average (aggregate + scalar subquery)
+SELECT u.full_name,
+       count(*) AS decided,
+       round(avg(extract(epoch FROM r.decided_at - r.requested_at) / 3600)::numeric, 1) AS avg_hours,
+       (SELECT round(avg(extract(epoch FROM decided_at - requested_at) / 3600)::numeric, 1)
+          FROM access_request WHERE decided_at IS NOT NULL)                          AS overall_avg_hours
+FROM access_request r
+JOIN app_user u ON u.user_id = r.decided_by
+GROUP BY u.user_id, u.full_name
+ORDER BY avg_hours;
+
+-- Q6. Student nav: grants expiring in the next 48 hours (derived expiry, no status column)
+SELECT co.code, l.title, r.expires_at
+FROM access_request r
+JOIN lecture l ON l.lecture_id = r.lecture_id
+JOIN course co ON co.course_id = l.course_id
+WHERE r.student_id = 4
+  AND r.status = 'approved'
+  AND r.expires_at BETWEEN now() AND now() + interval '48 hours'
+ORDER BY r.expires_at;
+
+-- Q7. Admin: bulk-enrol students by e-mail (INSERT ... SELECT, ON CONFLICT)
+INSERT INTO enrollment (student_id, course_id)
+SELECT u.user_id, (SELECT course_id FROM course WHERE code = 'CS301')
+FROM app_user u
+WHERE lower(u.email) = ANY (ARRAY['asha@pes.edu', 'ben@pes.edu'])
+  AND u.role = 'student'
+ON CONFLICT DO NOTHING;
+
+-- Q8. Instructor: edit a lecture (UPDATE) and admin: drop a student from a course (DELETE)
+UPDATE lecture SET title = 'Transactions, ACID and Isolation Levels' WHERE lecture_id = 1;
+DELETE FROM enrollment
+WHERE student_id = 5 AND course_id = (SELECT course_id FROM course WHERE code = 'CS301');
