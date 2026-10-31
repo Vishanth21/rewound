@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
+import { logout } from "@/app/actions/auth";
 import { withUser } from "@/lib/db";
 import "./globals.css";
 
@@ -58,7 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <div className="who">
                 <span>{session.user.name}</span>
                 <span className="role-chip">{role}</span>
-                <form action="/api/logout" method="post">
+                <form action={logout}>
                   <button className="link-btn" type="submit">Sign out</button>
                 </form>
               </div>

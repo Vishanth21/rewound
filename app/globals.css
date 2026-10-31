@@ -153,6 +153,8 @@ mark { background: var(--hit); color: inherit; padding: 0 1px; border-radius: 2p
 /* ---------- auth ---------- */
 .login-wrap { min-height: calc(100vh - 56px); display: grid; place-items: center; padding: 20px; }
 .login { width: 100%; max-width: 380px; }
+.request-dialog { width: min(92vw, 480px); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; color: var(--text); box-shadow: 0 16px 48px rgba(16, 24, 40, 0.24); }
+.request-dialog::backdrop { background: rgba(16, 24, 40, 0.55); }
 
 @media (max-width: 760px) {
   .topbar-inner { height: auto; min-height: 56px; padding-top: 8px; padding-bottom: 8px; gap: 8px 14px; flex-wrap: wrap; }
