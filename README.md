@@ -192,6 +192,7 @@ npm run dev                                     # http://localhost:3000
 
 ## Security
 
+- The API method-by-role authorization matrix is documented in [`docs/API_AUTH_MATRIX.md`](docs/API_AUTH_MATRIX.md).
 - Passwords are stored only as **bcrypt** hashes, and a CHECK constraint rejects anything else.
 - No credentials in the source code. Configuration comes from environment variables (`.env.local` is git-ignored).
 - All SQL is parameterised. User input never becomes SQL text.
