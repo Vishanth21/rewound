@@ -51,6 +51,11 @@ h3 { font-size: 1rem; margin: 0; }
 .nav { display: flex; gap: 4px; flex: 1; }
 .nav a { color: #d6e2f0; padding: 6px 12px; border-radius: 6px; }
 .nav a:hover { background: rgba(255, 255, 255, 0.1); color: #fff; text-decoration: none; }
+.nav-badge-link { display: inline-flex; align-items: center; gap: 6px; }
+.nav-badge-link .badge { background: #f3a27c; color: #1b2430; line-height: 1; }
+.nav { min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.nav::-webkit-scrollbar { display: none; }
+.nav a { flex: none; }
 .who { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; color: #d6e2f0; }
 .who form { margin: 0; }
 .role-chip { background: rgba(255, 255, 255, 0.15); color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; text-transform: capitalize; }
@@ -148,3 +153,9 @@ mark { background: var(--hit); color: inherit; padding: 0 1px; border-radius: 2p
 /* ---------- auth ---------- */
 .login-wrap { min-height: calc(100vh - 56px); display: grid; place-items: center; padding: 20px; }
 .login { width: 100%; max-width: 380px; }
+
+@media (max-width: 760px) {
+  .topbar-inner { height: auto; min-height: 56px; padding-top: 8px; padding-bottom: 8px; gap: 8px 14px; flex-wrap: wrap; }
+  .nav { order: 3; flex-basis: 100%; }
+  .who { margin-left: auto; }
+}
