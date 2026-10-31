@@ -6,8 +6,8 @@ import { withUser } from "@/lib/db";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LectureLens",
-  description: "Semantic search over lecture transcripts",
+  title: "Rewound",
+  description: "Rewound searches across uploaded lectures by meaning and returns timestamped passages similar to your query.",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -35,7 +35,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <header className="topbar">
           <div className="topbar-inner">
             <Link href="/search" className="logo">
-              Lecture<span>Lens</span>
+              Rewound
             </Link>
             {session && (
               <nav className="nav">

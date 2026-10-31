@@ -2,7 +2,7 @@
   "name": "lecturelens",
   "version": "0.1.0",
   "private": true,
-  "description": "LectureLens: semantic search over lecture transcripts (DBMS Level 3 project)",
+  "description": "Rewound: semantic search across uploaded lectures with timestamped passages (DBMS Level 3 project)",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
