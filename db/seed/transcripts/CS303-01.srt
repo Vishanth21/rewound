@@ -1,0 +1,91 @@
+1
+00:00:02,000 --> 00:00:12,000
+Welcome to machine learning. We begin with the most basic model, linear regression, and the algorithm that trains almost everything in modern deep learning: gradient descent.
+
+2
+00:00:12,400 --> 00:00:27,015
+Suppose we want to predict house prices from size. We assume a straight line: the predicted price equals a weight times the size plus a bias. Learning means finding the weight and bias that fit the data best.
+
+3
+00:00:27,415 --> 00:00:40,108
+To say what best means we define a loss function. For regression the standard choice is mean squared error: take the difference between prediction and truth for each example, square it, and average.
+
+4
+00:00:40,508 --> 00:00:53,200
+Squaring makes errors positive, penalizes large mistakes more than small ones, and gives a smooth function that is easy to differentiate. The loss is a bowl shaped surface over the space of weights.
+
+5
+00:00:53,600 --> 00:01:06,677
+Gradient descent finds the bottom of the bowl. Imagine standing on a hillside in fog. You feel the slope under your feet and take a step downhill, then repeat until the ground is flat.
+
+6
+00:01:07,077 --> 00:01:19,385
+Mathematically, the gradient is the vector of partial derivatives of the loss with respect to each parameter. It points in the direction of steepest increase, so we move in the opposite direction.
+
+7
+00:01:19,785 --> 00:01:30,938
+The update rule is simple: new weight equals old weight minus the learning rate times the gradient. The learning rate, often written alpha, controls the size of each step.
+
+8
+00:01:31,338 --> 00:01:45,185
+Choosing the learning rate is crucial. If it is too small, training crawls and may take forever. If it is too large, the steps overshoot the minimum, the loss bounces around, and it can even diverge.
+
+9
+00:01:45,585 --> 00:01:56,354
+A good habit is to plot the loss against the number of iterations. A healthy curve decreases smoothly. If it increases or oscillates wildly, reduce the learning rate.
+
+10
+00:01:56,754 --> 00:02:07,908
+Batch gradient descent computes the gradient over the entire training set for every step. That gives an accurate direction but is slow when the dataset has millions of examples.
+
+11
+00:02:08,308 --> 00:02:20,231
+Stochastic gradient descent updates the parameters after every single example. Each step is noisy, but steps are cheap, and the noise can even help escape poor regions of the loss surface.
+
+12
+00:02:20,631 --> 00:02:33,708
+In practice we use mini batch gradient descent: compute the gradient on a small batch, say thirty two or two hundred fifty six examples. It balances speed, stability and efficient use of vectorized hardware.
+
+13
+00:02:34,108 --> 00:02:47,185
+Feature scaling matters a great deal. If one feature ranges from zero to one and another from zero to one million, the loss surface becomes a long narrow valley and gradient descent zigzags slowly.
+
+14
+00:02:47,585 --> 00:02:57,969
+Standardizing each feature to zero mean and unit variance makes the contours rounder, so a single learning rate works for every direction and convergence is much faster.
+
+15
+00:02:58,369 --> 00:03:12,600
+For linear regression there is also a closed form solution called the normal equation, which solves for the weights directly using matrix inversion. It needs no learning rate, but costs cubic time in the number of features.
+
+16
+00:03:13,000 --> 00:03:28,385
+Because mean squared error for linear regression is convex, it has a single global minimum. Gradient descent is guaranteed to reach it with a suitable learning rate. Neural networks are not convex and have many local minima and saddle points.
+
+17
+00:03:28,785 --> 00:03:39,169
+Momentum improves plain gradient descent by accumulating a running average of past gradients, like a ball rolling downhill that builds speed in consistent directions and dampens oscillations.
+
+18
+00:03:39,569 --> 00:03:52,646
+Adaptive methods such as Adam keep a separate effective learning rate for every parameter, using running estimates of the first and second moments of the gradients. They are the default choice for deep networks.
+
+19
+00:03:53,046 --> 00:04:07,277
+Let us do a tiny numeric example. With weight zero, learning rate zero point one, and a gradient of minus four, the update gives a new weight of zero point four. Repeating moves us toward the optimum.
+
+20
+00:04:07,677 --> 00:04:19,600
+With several features the model generalizes to a dot product of a weight vector and a feature vector. The same gradient descent update applies to every component of the weight vector.
+
+21
+00:04:20,000 --> 00:04:32,692
+We can detect convergence when the change in loss between iterations falls below a small threshold, or when the gradient norm is nearly zero. Otherwise we stop after a maximum number of epochs.
+
+22
+00:04:33,092 --> 00:04:45,400
+An epoch is one full pass through the training data. When using mini batches, one epoch consists of many update steps. We usually shuffle the data at the start of each epoch.
+
+23
+00:04:45,800 --> 00:04:58,492
+To summarize: define a loss, compute its gradient, step in the opposite direction scaled by the learning rate; scale your features; prefer mini batches; and use momentum or Adam for faster, steadier training.

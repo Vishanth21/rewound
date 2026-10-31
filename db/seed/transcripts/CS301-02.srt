@@ -1,0 +1,95 @@
+1
+00:00:02,000 --> 00:00:12,769
+Last time we said isolation makes concurrent transactions behave as if they ran one after another. Today we look at the machinery that makes that true: concurrency control.
+
+2
+00:00:13,169 --> 00:00:25,477
+Start with the problem. Two transactions both read a balance of one thousand, both add one hundred, and both write back eleven hundred. One deposit has vanished. This is the lost update.
+
+3
+00:00:25,877 --> 00:00:38,185
+A schedule is an interleaving of the operations of several transactions. A schedule is serial if the transactions run one at a time, and serializable if its effect equals some serial schedule.
+
+4
+00:00:38,585 --> 00:00:48,969
+Two operations conflict if they touch the same item, belong to different transactions, and at least one of them is a write. Read read pairs never conflict.
+
+5
+00:00:49,369 --> 00:01:03,600
+We can test conflict serializability with a precedence graph. Draw a node per transaction and an edge from T1 to T2 whenever a conflicting operation of T1 comes before one of T2. A cycle means not serializable.
+
+6
+00:01:04,000 --> 00:01:17,846
+The simplest way to enforce serializability is locking. A shared lock, or S lock, allows reading and many transactions can hold it together. An exclusive lock, or X lock, allows writing and is held by one.
+
+7
+00:01:18,246 --> 00:01:30,938
+The compatibility rule is easy: shared with shared is fine, everything else must wait. If I hold an exclusive lock on a row, nobody else may read or write it until I release.
+
+8
+00:01:31,338 --> 00:01:40,569
+Locking alone is not enough. If a transaction releases a lock and later takes another, other transactions can slip in between and break serializability.
+
+9
+00:01:40,969 --> 00:01:56,354
+The fix is two phase locking, or 2PL. Each transaction has a growing phase where it only acquires locks, followed by a shrinking phase where it only releases them. Once it releases one lock, it may not acquire any more.
+
+10
+00:01:56,754 --> 00:02:07,138
+Two phase locking guarantees conflict serializable schedules. However, it does not prevent cascading rollbacks, where aborting one transaction forces others that read its data to abort too.
+
+11
+00:02:07,538 --> 00:02:17,154
+Strict two phase locking holds all exclusive locks until the transaction commits or aborts. This prevents cascading rollbacks and is what most real systems implement.
+
+12
+00:02:17,554 --> 00:02:29,092
+Lock granularity is a design choice. You can lock a whole table, a page or a single row. Fine grained locks allow more concurrency but cost more memory and bookkeeping.
+
+13
+00:02:29,492 --> 00:02:41,800
+To mix granularities safely, databases use intention locks. Before locking a row exclusively, a transaction takes an intention exclusive lock on the table, so a table scan knows someone is writing inside.
+
+14
+00:02:42,200 --> 00:02:53,354
+Locks bring a new danger: waiting. If T1 waits for T2 and T2 waits for T1, neither can proceed. The database must detect or prevent such a circular wait.
+
+15
+00:02:53,754 --> 00:03:06,831
+Most databases detect it with a wait for graph. Nodes are transactions, an edge means waits for, and a cycle means deadlock. The system picks a victim, aborts it, and lets the others continue.
+
+16
+00:03:07,231 --> 00:03:17,615
+Your application must be ready for this. When the database reports a deadlock or serialization failure, catch the error and retry the whole transaction from the start.
+
+17
+00:03:18,015 --> 00:03:27,631
+You can reduce deadlocks by touching rows in a consistent order. If every transaction updates account one before account two, the circular wait cannot form.
+
+18
+00:03:28,031 --> 00:03:40,723
+Postgres takes another approach for readers: multiversion concurrency control, or MVCC. Every update creates a new version of the row, and each transaction sees a snapshot of the data as of its start.
+
+19
+00:03:41,123 --> 00:03:53,431
+With MVCC readers never block writers and writers never block readers. That is a huge win for read heavy workloads, and it is why a long report does not freeze your application.
+
+20
+00:03:53,831 --> 00:04:05,369
+Snapshot isolation is not fully serializable, though. Two transactions can each read what the other writes and both commit, causing write skew, such as two doctors both going off call.
+
+21
+00:04:05,769 --> 00:04:20,000
+When you must lock explicitly, use SELECT FOR UPDATE. It reads the rows and takes exclusive row locks so nobody else can change them until you commit. This is the standard way to book the last seat.
+
+22
+00:04:20,400 --> 00:04:31,938
+The opposite philosophy is optimistic concurrency control. Do the work without locks, and at commit time validate that nobody else changed what you read. If they did, abort and retry.
+
+23
+00:04:32,338 --> 00:04:45,800
+Optimistic control works well when conflicts are rare. A common form is a version column: update the row only where the version still equals the one you read, and check how many rows were updated.
+
+24
+00:04:46,200 --> 00:04:56,585
+Summary: conflicts define serializability; two phase locking enforces it; strict 2PL avoids cascading aborts; deadlocks are detected with wait for graphs; MVCC and optimistic methods avoid blocking.

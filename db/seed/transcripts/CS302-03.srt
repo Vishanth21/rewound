@@ -1,0 +1,91 @@
+1
+00:00:02,000 --> 00:00:12,000
+Today we study virtual memory, the trick that lets a program use more memory than the machine physically has and keeps programs isolated from each other.
+
+2
+00:00:12,400 --> 00:00:23,554
+Each process sees its own virtual address space, starting at zero. The hardware, with the operating system's help, translates every virtual address into a physical address in real memory.
+
+3
+00:00:23,954 --> 00:00:36,646
+The simplest scheme is paging. Physical memory is divided into fixed size blocks called frames, and virtual memory into blocks of the same size called pages. A typical page size is four kilobytes.
+
+4
+00:00:37,046 --> 00:00:49,738
+A virtual address splits into a page number and an offset. The page table maps the page number to a frame number, and the offset is copied unchanged to form the physical address.
+
+5
+00:00:50,138 --> 00:01:01,292
+Paging eliminates external fragmentation because any free frame can hold any page. It still suffers internal fragmentation, since the last page of a process is usually only partly used.
+
+6
+00:01:01,692 --> 00:01:16,308
+Every memory access would need two accesses, one to the page table and one to the data. To avoid that cost, the processor has a small fast cache of recent translations called the translation lookaside buffer, or TLB.
+
+7
+00:01:16,708 --> 00:01:30,554
+On a TLB hit the translation is instant. On a miss the hardware walks the page table and loads the entry into the TLB. Effective access time is a weighted average of hit and miss cases.
+
+8
+00:01:30,954 --> 00:01:45,954
+Page tables can be huge. A thirty two bit address space with four kilobyte pages has a million entries per process. Multi level page tables solve this by paging the page table itself, allocating inner tables only when needed.
+
+9
+00:01:46,354 --> 00:02:00,585
+Each page table entry has extra bits: a valid bit saying whether the page is in memory, protection bits for read, write and execute, a dirty bit set when the page is modified, and a reference bit.
+
+10
+00:02:00,985 --> 00:02:14,446
+Demand paging brings a page into memory only when it is first touched. When a process accesses a page that is not present, the hardware raises a page fault and the operating system takes over.
+
+11
+00:02:14,846 --> 00:02:28,308
+The page fault handler finds the page on disk, picks a free frame, reads the page in, updates the page table, and restarts the instruction. Disk access takes milliseconds, so page faults are very expensive.
+
+12
+00:02:28,708 --> 00:02:41,015
+If there is no free frame, the operating system must choose a victim page to evict. This is the page replacement problem, and a good algorithm keeps the page fault rate low.
+
+13
+00:02:41,415 --> 00:02:56,031
+The first algorithm is first in first out: evict the oldest page. It is simple but can evict a heavily used page. It also suffers Belady's anomaly, where giving a process more frames can actually increase page faults.
+
+14
+00:02:56,431 --> 00:03:11,431
+The optimal algorithm evicts the page that will not be used for the longest time in the future. It gives the lowest possible fault rate but needs knowledge of the future, so it is used only as a benchmark.
+
+15
+00:03:11,831 --> 00:03:22,985
+Least recently used, or LRU, approximates the optimal algorithm by looking backwards: evict the page unused for the longest time. It performs well and does not suffer Belady's anomaly.
+
+16
+00:03:23,385 --> 00:03:36,846
+Exact LRU needs expensive hardware support, so systems approximate it. The clock algorithm arranges frames in a circle and sweeps a hand, clearing reference bits and evicting the first page whose bit is already zero.
+
+17
+00:03:37,246 --> 00:03:51,477
+Let us trace an example. Reference string seven, zero, one, two, zero, three, zero, four with three frames. First in first out gives more faults than LRU here, because LRU keeps page zero, which is used repeatedly.
+
+18
+00:03:51,877 --> 00:04:02,646
+If a process does not have enough frames for its active pages, it faults constantly, spending more time swapping than computing. This collapse in performance is called thrashing.
+
+19
+00:04:03,046 --> 00:04:17,662
+The working set model defines the set of pages a process has used in its most recent window of references. The system gives each process enough frames for its working set, and suspends processes if memory is short.
+
+20
+00:04:18,062 --> 00:04:28,446
+An alternative is to monitor the page fault frequency directly. If a process faults too often, give it more frames. If it faults rarely, take frames away.
+
+21
+00:04:28,846 --> 00:04:42,308
+Virtual memory also enables copy on write. After a fork, parent and child share the same physical pages marked read only. Only when one of them writes is the page copied, which makes fork cheap.
+
+22
+00:04:42,708 --> 00:04:53,862
+Memory mapped files use the same machinery: a file is mapped into the address space and pages are loaded on demand, so reading a file looks like reading memory.
+
+23
+00:04:54,262 --> 00:05:06,569
+In summary: paging maps virtual pages to physical frames; the TLB speeds translation; demand paging loads pages lazily; replacement algorithms such as LRU choose victims; and the working set model prevents thrashing.

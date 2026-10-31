@@ -1,0 +1,95 @@
+1
+00:00:02,000 --> 00:00:13,154
+Welcome back. Today we talk about transactions, which are the reason a database can be trusted with money, bookings and medical records instead of being just a fancy spreadsheet.
+
+2
+00:00:13,554 --> 00:00:24,323
+A transaction is a group of operations that the database treats as a single logical unit of work. Either every step takes effect or none of them do.
+
+3
+00:00:24,723 --> 00:00:37,415
+The classic example is a bank transfer. You subtract five hundred rupees from account A and add five hundred to account B. Doing only one of those steps would create or destroy money.
+
+4
+00:00:37,815 --> 00:00:47,815
+To reason about this we use four properties, remembered by the acronym ACID: atomicity, consistency, isolation and durability. Let us take them one at a time.
+
+5
+00:00:48,215 --> 00:01:00,138
+Atomicity means all or nothing. If the server crashes after the debit but before the credit, the recovery system must undo the debit so the half finished transfer never becomes visible.
+
+6
+00:01:00,538 --> 00:01:14,769
+The database achieves this with a write ahead log. Before any change reaches the data pages, a log record describing the change is forced to disk. After a crash we replay or roll back using that log.
+
+7
+00:01:15,169 --> 00:01:27,092
+Consistency means a transaction takes the database from one valid state to another valid state. Valid means every constraint holds: primary keys, foreign keys, check constraints and your own business rules.
+
+8
+00:01:27,492 --> 00:01:39,415
+Notice that consistency is partly your job. The database enforces the constraints you declare, so if you never declared that a balance cannot go negative, it will happily let it happen.
+
+9
+00:01:39,815 --> 00:01:51,354
+Isolation means concurrent transactions should not see each other's half finished work. Ideally the outcome is the same as if the transactions had run one after another in some order.
+
+10
+00:01:51,754 --> 00:02:03,677
+Perfect isolation is expensive, so SQL defines levels: read uncommitted, read committed, repeatable read and serializable. Each level forbids more anomalies, at the price of more waiting or more aborted transactions.
+
+11
+00:02:04,077 --> 00:02:16,385
+Durability means that once the database says committed, the change survives a power failure. It is the log again: commit returns only after the commit record is safely flushed to stable storage.
+
+12
+00:02:16,785 --> 00:02:28,323
+Let us see this in SQL. You write BEGIN to start a transaction, run your statements, and then either COMMIT to make them permanent or ROLLBACK to throw everything away.
+
+13
+00:02:28,723 --> 00:02:41,800
+If you do not write BEGIN, most systems run in autocommit mode, where each statement is its own tiny transaction. That is fine for a single insert, but not for a transfer between accounts.
+
+14
+00:02:42,200 --> 00:02:54,508
+A savepoint lets you roll back part of a transaction. You set a savepoint, try something risky, and if it fails you roll back to the savepoint without losing the earlier work.
+
+15
+00:02:54,908 --> 00:03:07,215
+Now let me show what goes wrong without isolation. A dirty read happens when you read a value another transaction has written but not yet committed, and that transaction later rolls back.
+
+16
+00:03:07,615 --> 00:03:18,000
+A non repeatable read happens when you read the same row twice in one transaction and get different values because someone else committed an update in between.
+
+17
+00:03:18,400 --> 00:03:30,323
+A phantom read is similar but about sets of rows. You run a query twice with the same condition, and the second time new rows appear because another transaction inserted them.
+
+18
+00:03:30,723 --> 00:03:39,954
+Postgres defaults to read committed, which prevents dirty reads but allows non repeatable reads and phantoms. Many web applications live happily at this level.
+
+19
+00:03:40,354 --> 00:03:51,508
+For things like inventory counts or seat booking you often need stronger guarantees, either by using serializable isolation or by explicitly locking the rows you are about to change.
+
+20
+00:03:51,908 --> 00:04:04,600
+Let me also mention two phase commit, used when one transaction spans several databases. A coordinator asks every participant to prepare, and only when all say yes does it tell them to commit.
+
+21
+00:04:05,000 --> 00:04:15,385
+The weakness of two phase commit is blocking. If the coordinator dies after the participants have prepared, they must wait, holding their locks, until it comes back.
+
+22
+00:04:15,785 --> 00:04:25,400
+In practice, keep transactions short. A long running transaction holds locks, bloats the log, and prevents cleanup of old row versions, which hurts everyone else.
+
+23
+00:04:25,800 --> 00:04:37,338
+Never wait for user input inside a transaction. Open it, do the work, commit it. The user going for a coffee break should not stop other people from booking seats.
+
+24
+00:04:37,738 --> 00:04:48,123
+To recap: a transaction groups operations; ACID describes the guarantees; the log provides atomicity and durability; isolation levels trade safety against concurrency. Next lecture we study locking.

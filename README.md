@@ -23,8 +23,7 @@ DBMS Experiential Learning, Mini project
   - [Getting started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [1. Run the database test suite (no Docker needed)](#1-run-the-database-test-suite-no-docker-needed)
-    - [2. Create the database with Docker](#2-create-the-database-with-docker)
-    - [3. Web app *(coming soon)*](#3-web-app-coming-soon)
+    - [2. Run the app (Docker + Next.js)](#2-run-the-app-docker--nextjs)
   - [Repository structure](#repository-structure)
   - [Security](#security)
   - [Team](#team)
@@ -139,7 +138,7 @@ flowchart LR
 
 - Python 3.10+ (for the database test suite)
 - Docker Desktop (to run PostgreSQL + pgvector)
-- Node.js 20+ (for the web app, once it lands)
+- Node.js 20.12+ (for the web app)
 
 ### 1. Run the database test suite (no Docker needed)
 
@@ -157,37 +156,22 @@ Expected last line: `44/44 passed`. Detailed results are written to `db/tests/te
 
 > The bundled server has pgvector 0.6, so the test runner skips the one `hnsw.iterative_scan` setting that needs 0.8. The Docker image below supports it.
 
-### 2. Create the database with Docker
-
-Start PostgreSQL 16 with pgvector 0.8:
+### 2. Run the app (Docker + Next.js)
 
 ```bash
-docker run -d --name lecturelens-db -e POSTGRES_DB=lecturelens -e POSTGRES_PASSWORD=change-me -p 5432:5432 pgvector/pgvector:pg16
-```
-
-Apply the migrations in order to the fresh database. The two role passwords come from environment variables, never from the SQL files:
-
-```bash
-export APP_DB_PASSWORD=change-me ANALYST_DB_PASSWORD=change-me
-for f in db/migrations/*.sql; do
-  docker exec -i lecturelens-db psql -U postgres -d lecturelens -v ON_ERROR_STOP=1 \
-    -v app_pw="$APP_DB_PASSWORD" -v analyst_pw="$ANALYST_DB_PASSWORD" < "$f" || break
-done
-```
-
-The web app connects as the least-privilege role `lecturelens_app`, not as `postgres`.
-
-### 3. Web app *(coming soon)*
-
-Once the Next.js app is committed, setup will be:
-
-```bash
-cp .env.example .env.local     # fill in DATABASE_URL and AUTH_SECRET
+cp .env.example .env.local                      # then replace every change-me and AUTH_SECRET
+docker compose --env-file .env.local up -d      # PostgreSQL 16 + pgvector 0.8 on localhost:5432
 npm install
-npm run db:migrate
-npm run db:seed                # downloads the MiniLM model once (~23 MB) and embeds sample transcripts
-npm run dev                    # http://localhost:3000
+npm run db:migrate                              # applies db/migrations in order (db:reset rebuilds from scratch)
+npm run db:seed                                 # demo users, 3 courses, 9 lectures; embeds the sample transcripts
+npm run dev                                     # http://localhost:3000
 ```
+
+- `db:seed` downloads the MiniLM model once (~23 MB). It expects a freshly migrated database: run `npm run db:reset` first to seed again.
+- Demo logins are listed at the bottom of `.env.example` (password `demo1234`): `admin@pes.edu`, instructors `rao@` / `iyer@` / `menon@`, students `asha@` / `ben@` / `chitra@`.
+- The seeded lectures use placeholder YouTube ids, so the player shows "video unavailable" until real ids are set; transcripts, search and jump-to-timestamp work regardless.
+- The web app connects as the least-privilege role `lecturelens_app`; only migrations and seeding use the schema owner.
+- Unit tests: `npm test`.
 
 ## Repository structure
 
