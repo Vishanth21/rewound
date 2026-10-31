@@ -96,9 +96,9 @@ flowchart LR
 
 ## Database design
 
-10 relations, all in BCNF. Each arrow runs from a foreign key to the primary key it references:
+10 relations, all in BCNF. Crow's-foot notation: `||` exactly one, `o|` zero or one, `o{` zero or more, `|{` one or more.
 
-![Relational schema](docs/relational_schema.svg)
+![ER diagram](docs/er_diagram.png)
 
 | Table | Holds |
 |---|---|
