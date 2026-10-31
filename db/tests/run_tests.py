@@ -355,6 +355,142 @@ def main():
         assert len(r) == 3 and not any(x[3] for x in r) and r[0][1] == "dQw4w9WgXcQ"
         return "%d rows from 1 lecture(s); is_locked=False; video_id=%s; best distance=%.3f" % (len(r), r[0][1], min(x[2] for x in r))
 
+    # ===== T13-T27: access requests, RLS, approval workflow, expiry
+    # Fixture mapping: Asha is enrolled in CS301 (l1), so she already has access to l1.
+    # CS302 (l2, uploaded by iyer) is out of her scope -- it is the request target.
+    req = {}
+
+    @check("T13", "Integrity", "Requesting a lecture you already have access to is rejected", owner="B")
+    def _():
+        as_user(U["asha"])
+        return rejects("SELECT request_access(%s, 'I want it')", (state["l1"],), "already has access")
+
+    @check("T14", "Validation", "Blank reason is rejected", owner="B")
+    def _():
+        as_user(U["asha"])
+        return rejects("SELECT request_access(%s, '   ')", (state["l2"],), "access_request_reason_check")
+
+    @check("T15", "Validation", "Reason over 500 characters is rejected", owner="B")
+    def _():
+        as_user(U["asha"])
+        return rejects("SELECT request_access(%s, %s)", (state["l2"], "x" * 501), "too long")
+
+    @check("T16", "Workflow", "Out-of-scope request is created (pending)", owner="B")
+    def _():
+        as_user(U["asha"])
+        cur.execute("SELECT request_access(%s, 'Missed the lecture on deadlock')", (state["l2"],))
+        req["id"] = cur.fetchone()[0]
+        as_owner()
+        r = rows("SELECT status, decided_by, expires_at FROM access_request WHERE request_id = %s", (req["id"],))[0]
+        assert r[0] == "pending" and r[1] is None and r[2] is None, r
+        return "request_id=%s" % req["id"]
+
+    @check("T17", "Index", "Second pending request for same lecture rejected by partial unique index", owner="B")
+    def _():
+        as_user(U["asha"])
+        return rejects("SELECT request_access(%s, 'again')", (state["l2"],), "already have a pending request")
+
+    @check("T18", "RLS", "Another student sees none of Asha's requests (row-level security)", owner="B")
+    def _():
+        as_user(U["ben"])
+        n = one("SELECT count(*) FROM access_request WHERE request_id = %s", (req["id"],))
+        assert n == 0, n
+        return "visible=%d" % n
+
+    @check("T19", "RLS", "The approving instructor sees it in their inbox", owner="B")
+    def _():
+        as_user(U["iyer"])
+        n = one("SELECT count(*) FROM my_pending_requests() WHERE request_id = %s", (req["id"],))
+        assert n == 1, n
+        return "inbox=%d" % n
+
+    @check("T20", "Workflow", "Instructor who did not upload the lecture cannot approve", owner="B")
+    def _():
+        as_user(U["rao"])
+        return rejects("CALL decide_request(%s, true, 7)", (req["id"],), "may not decide request")
+
+    @check("T21", "Validation", "Grant duration outside 1-90 days rejected", owner="B")
+    def _():
+        as_user(U["iyer"])
+        return rejects("CALL decide_request(%s, true, 91)", (req["id"],), "grant duration must be 1-90 days")
+
+    @check("T22", "Transaction", "Uploader approves for 7 days", owner="B")
+    def _():
+        as_user(U["iyer"])
+        cur.execute("CALL decide_request(%s, true, 7)", (req["id"],))
+        as_owner()
+        r = rows("SELECT status, decided_by, expires_at > now() FROM access_request WHERE request_id = %s", (req["id"],))[0]
+        assert r[0] == "approved" and r[1] == U["iyer"] and r[2] is True, r
+        return "ok, status=%s decided_by=%s" % (r[0], r[1])
+
+    @check("T23", "Workflow", "Deciding an already-approved request is rejected", owner="B")
+    def _():
+        as_user(U["iyer"])
+        return rejects("CALL decide_request(%s, true, 7)", (req["id"],), "was already approved")
+
+    @check("T24", "Workflow", "Reason cannot be edited after submission", owner="B")
+    def _():
+        as_owner()
+        return rejects("UPDATE access_request SET reason = 'changed' WHERE request_id = %s",
+                       (req["id"],), "cannot be edited after submission")
+
+    @check("T25", "Search/RBAC", "After approval the granted lecture is now in scope", owner="B")
+    def _():
+        as_user(U["asha"])
+        r = rows("SELECT lecture_id, youtube_video_id, is_locked FROM search_lectures(%s::vector, 10)", (q_deadlock,))
+        assert len(r) == 3 and all(x[0] == state["l2"] for x in r) and not any(x[2] for x in r)
+        assert all(x[1] == "abcdefghijk" for x in r)
+        return "%d rows from 1 lecture(s); is_locked=False; video_id=%s" % (len(r), r[0][1])
+
+    @check("T26", "Time-based", "Grant past expires_at: shows 'expired' and access is gone (no sweep job)", owner="B")
+    def _():
+        # A decided request is immutable by design (trg_request_before_update + chk_decision_fields),
+        # so the expired grant is seeded directly as owner rather than ageing T22's live row.
+        # trg_request_before_insert must be off for this one INSERT: it unconditionally forces
+        # status := 'pending' and expires_at := NULL, which would silently rewrite the grant.
+        as_owner()
+        cur.execute("ALTER TABLE access_request DISABLE TRIGGER trg_request_before_insert")
+        try:
+            cur.execute("""INSERT INTO access_request
+                             (student_id, lecture_id, reason, status, requested_at, decided_by, decided_at, expires_at)
+                           VALUES (%s, %s, 'seeded expired grant', 'approved',
+                                   now() - interval '9 days', %s, now() - interval '8 days', now() - interval '1 day')
+                           RETURNING request_id""", (U["ben"], state["l1"], U["rao"]))
+            req["expired_id"] = cur.fetchone()[0]
+        finally:
+            cur.execute("ALTER TABLE access_request ENABLE TRIGGER trg_request_before_insert")
+        as_user(U["ben"])
+        st = one("SELECT access_state FROM v_request_history WHERE request_id = %s", (req["expired_id"],))
+        acc = one("SELECT has_lecture_access(%s, %s)", (U["ben"], state["l1"]))
+        assert st == "expired" and acc is False, (st, acc)
+        return "access_state=%s, has_access=%s" % (st, acc)
+
+    @check("T27", "Workflow", "After expiry the student may request again", owner="B")
+    def _():
+        # Ben is enrolled in CS302 (l2), so l1 is the lecture he reaches only by grant.
+        as_user(U["ben"])
+        acc = one("SELECT has_lecture_access(%s, %s)", (U["ben"], state["l1"]))
+        assert acc is False, acc
+        cur.execute("SELECT request_access(%s, 'expired, need it again')", (state["l1"],))
+        req["id2"] = cur.fetchone()[0]
+        as_owner()
+        st = one("SELECT status FROM access_request WHERE request_id = %s", (req["id2"],))
+        assert st == "pending" and req["id2"] != req["expired_id"], (st, req["id2"])
+        return "ok, new request_id=%s (%s)" % (req["id2"], st)
+
+    # ===== T32-T33: user-table constraints
+    @check("T32", "Validation", "Duplicate e-mail differing only in case is rejected", owner="B")
+    def _():
+        as_owner()
+        return rejects("INSERT INTO app_user (email, full_name, password_hash, role) VALUES ('ASHA@PES.EDU', 'Imposter', %s, 'student')",
+                       (BCRYPT_HASH,), "uq_app_user_email")
+
+    @check("T33", "Security", "Plain-text password is rejected (bcrypt hash required)", owner="B")
+    def _():
+        as_owner()
+        return rejects("INSERT INTO app_user (email, full_name, password_hash, role) VALUES ('plain@pes.edu', 'Plain', 'hunter2', 'student')",
+                       None, "app_user_password_hash_check")
+
     # ===== T28-T31, T34: privileges, scope, full-text
     @check("T28", "Privileges", "App role cannot read transcript_chunk directly")
     def _():
@@ -368,8 +504,10 @@ def main():
 
     @check("T30", "Privileges", "get_lecture() refuses a lecture outside the caller's scope")
     def _():
-        as_user(U["asha"])
-        return rejects("SELECT * FROM get_lecture(%s)", (state["l2"],), "no access to lecture")
+        # Asha is enrolled in CS301 (l1) only, and her l2 grant from T25 is still active, so she
+        # cannot be used here. Ben is enrolled in CS302 (l2) and has no grant on l1.
+        as_user(U["ben"])
+        return rejects("SELECT * FROM get_lecture(%s)", (state["l1"],), "no access to lecture")
 
     @check("T31", "Integrity", "Removing a course's last instructor is rejected at COMMIT")
     def _():
@@ -378,10 +516,13 @@ def main():
 
     @check("T34", "Full-text", "Keyword search finds an exact term within scope (and nothing outside it)")
     def _():
-        as_user(U["asha"])
-        r = rows("SELECT lecture_id, snippet FROM search_lectures_keyword('serializability')")
-        out = rows("SELECT lecture_id FROM search_lectures_keyword('deadlock')")
-        assert len(r) == 1 and r[0][0] == state["l1"] and "serializability" in r[0][1].lower()
+        # 'serializability' is l1's cue and 'deadlock' is l2's. Asha is enrolled in CS301 (l1)
+        # and by now also holds an l2 grant from T25, so both terms resolve for her; Ben is
+        # enrolled in CS302 only, so l1 is the lecture outside his scope.
+        as_user(U["ben"])
+        r = rows("SELECT lecture_id, snippet FROM search_lectures_keyword('deadlock')")
+        out = rows("SELECT lecture_id FROM search_lectures_keyword('serializability')")
+        assert len(r) == 1 and r[0][0] == state["l2"] and "deadlock" in r[0][1].lower()
         assert out == []
         return "%d rows in scope; out-of-scope term returned 0 rows" % len(r)
 
@@ -531,12 +672,21 @@ def main():
 
     @check("T36", "Cascade", "Deleting a lecture cascades to its transcript, chunks, hits and requests")
     def _():
-        cur.execute("BEGIN")
-        cur.execute("INSERT INTO access_request (student_id, lecture_id, reason) VALUES (%s,%s,'curious')", (U["asha"], state["l2"]))
-        cur.execute("DELETE FROM lecture WHERE lecture_id = %s", (state["l2"],))
-        n_chunks = one("SELECT count(*) FROM transcript_chunk WHERE lecture_id = %s", (state["l2"],))
-        n_req = one("SELECT count(*) FROM access_request WHERE lecture_id = %s", (state["l2"],))
-        cur.execute("ROLLBACK")
+        # Both students now hold l2 (Ben by enrolment, Asha by T25's grant), so
+        # fn_request_before_insert would refuse the row. This test is about ON DELETE CASCADE,
+        # not the workflow, so the guard is bypassed -- outside the transaction, because
+        # ALTER TABLE takes ACCESS EXCLUSIVE and would otherwise be held until ROLLBACK.
+        cur.execute("ALTER TABLE access_request DISABLE TRIGGER trg_request_before_insert")
+        try:
+            cur.execute("BEGIN")
+            cur.execute("INSERT INTO access_request (student_id, lecture_id, reason) VALUES (%s,%s,'curious')",
+                        (U["ben"], state["l2"]))
+            cur.execute("DELETE FROM lecture WHERE lecture_id = %s", (state["l2"],))
+            n_chunks = one("SELECT count(*) FROM transcript_chunk WHERE lecture_id = %s", (state["l2"],))
+            n_req = one("SELECT count(*) FROM access_request WHERE lecture_id = %s", (state["l2"],))
+            cur.execute("ROLLBACK")
+        finally:
+            cur.execute("ALTER TABLE access_request ENABLE TRIGGER trg_request_before_insert")
         assert n_chunks == 0 and n_req == 0
         return "remaining chunks,requests=(%d, %d)" % (n_chunks, n_req)
 
