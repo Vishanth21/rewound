@@ -1,48 +1,64 @@
-// lib/auth.ts
-// STAND-IN for Member B's Auth.js setup (design plan section 13/15). It exposes the same
-// shape the pages need, `await auth()` -> { user: { id, role, name } } | null, so B's real
-// implementation can replace this file without touching any of Member A's code.
-//
-// The session is a JWT signed with AUTH_SECRET, stored in an httpOnly, SameSite=Lax cookie.
-import { SignJWT, jwtVerify } from "jose";
-import { cookies } from "next/headers";
+import bcrypt from "bcryptjs";
+import NextAuth from "next-auth";
+import Credentials from "next-auth/providers/credentials";
+import { z } from "zod";
+import { authConfig } from "@/auth.config";
+import { pool } from "@/lib/db";
+import type { Role } from "@/lib/auth-types";
 
-export type Role = "student" | "instructor" | "admin";
-export type Session = { user: { id: number; role: Role; name: string } };
+const CredentialsSchema = z.object({
+  email: z.string().trim().email().max(254),
+  password: z.string().min(1).max(200),
+});
 
-const COOKIE = "ll_session";
-const key = () => {
-  const secret = process.env.AUTH_SECRET;
-  if (!secret) throw new Error("AUTH_SECRET is not set (see .env.example)");
-  return new TextEncoder().encode(secret);
-};
+// Used for unknown emails as well, so the response time does not reveal whether
+// an account exists.
+const DUMMY_HASH = "$2a$12$CwTycUXWue0Thq9StjUM0uJ8Yq0HhXn7EqJkYiJ3Z2g3REdA9pWwK";
 
+const nextAuth = NextAuth({
+  ...authConfig,
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "E-mail", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(rawCredentials) {
+        const parsed = CredentialsSchema.safeParse(rawCredentials);
+        if (!parsed.success) return null;
+
+        const { rows } = await pool.query(
+          `SELECT user_id, full_name, role, password_hash
+             FROM app_user
+            WHERE lower(email) = lower($1)`,
+          [parsed.data.email],
+        );
+        const user = rows[0];
+        const validPassword = await bcrypt.compare(parsed.data.password, user?.password_hash ?? DUMMY_HASH);
+        if (!user || !validPassword) return null;
+
+        return {
+          id: String(user.user_id),
+          name: String(user.full_name),
+          role: user.role,
+        };
+      },
+    }),
+  ],
+});
+
+export const { handlers, signIn, signOut } = nextAuth;
 export async function auth(): Promise<Session | null> {
-  const token = cookies().get(COOKIE)?.value;
-  if (!token) return null;
-  try {
-    const { payload } = await jwtVerify(token, key());
-    return { user: { id: Number(payload.sub), role: payload.role as Role, name: String(payload.name) } };
-  } catch {
-    return null;
-  }
+  const session = await nextAuth.auth();
+  if (!session?.user) return null;
+  return {
+    user: {
+      id: Number(session.user.id),
+      role: session.user.role,
+      name: session.user.name ?? "",
+    },
+  };
 }
 
-export async function createSession(user: { id: number; role: Role; name: string }) {
-  const token = await new SignJWT({ role: user.role, name: user.name })
-    .setProtectedHeader({ alg: "HS256" })
-    .setSubject(String(user.id))
-    .setExpirationTime("8h")
-    .sign(key());
-  cookies().set(COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
-}
-
-export function destroySession() {
-  cookies().delete(COOKIE);
-}
+export type { Role } from "@/lib/auth-types";
+export type Session = { user: { id: number; role: Role; name: string } };
