@@ -98,7 +98,9 @@ flowchart LR
 
 10 relations, all in BCNF. Each arrow runs from a foreign key to the primary key it references:
 
-![Relational schema](docs/relational_schema.svg)
+![ER diagram](docs/er_diagram.png)
+
+Source: [`docs/er_diagram.mmd`](docs/er_diagram.mmd) (Mermaid), also as [SVG](docs/er_diagram.svg).
 
 | Table | Holds |
 |---|---|
