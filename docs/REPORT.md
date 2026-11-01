@@ -4,7 +4,7 @@
 
 | SRN | Name | Primary contribution |
 |---|---|---|
-| PES1UG24AM915 | Krish Mathur | Course and lecture content, transcript ingestion, embeddings, semantic and keyword search, lecture player, instructor content management. |
+| PES1UG24AM914 | Krish Mathur | Course and lecture content, transcript ingestion, embeddings, semantic and keyword search, lecture player, instructor content management. |
 | PES1UG24AM323 | Vishanth | Users and enrollments, access-request workflow, database roles and row-level security, authentication, admin and analytics pages. |
 
 ## 1. Abstract
