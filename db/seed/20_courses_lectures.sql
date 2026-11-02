@@ -3,9 +3,10 @@
 -- (10_users, Member B). Courses go through create_course() so the "course needs an instructor"
 -- rule and the admin-only check are exercised exactly as the app does it.
 --
--- youtube_video_id values are PLACEHOLDERS in the right format. Replace them with the ids of the
--- real unlisted lecture videos before the demo (UPDATE lecture SET youtube_video_id = ... ).
--- Transcripts for these lectures live in db/seed/transcripts/<CODE>-<NN>.srt|vtt.
+-- youtube_video_id values are public YouTube videos on each topic (all allow embedding) and
+-- duration_sec is each video's real length. The transcripts in db/seed/transcripts/<CODE>-<NN>.srt|vtt
+-- were written for the demo, not taken from these videos, so a timestamp seeks the video to that
+-- point but the words spoken there will differ from the passage text.
 
 SELECT set_config('lecturelens.user_id',
                   (SELECT user_id FROM app_user WHERE lower(email) = 'admin@pes.edu')::text, false);
@@ -24,15 +25,15 @@ END $$;
 INSERT INTO lecture (course_id, lecture_no, title, youtube_video_id, duration_sec, delivered_on, description, created_by)
 SELECT co.course_id, v.lecture_no, v.title, v.video, v.duration_sec, v.delivered_on::date, v.description, ci.instructor_id
 FROM (VALUES
-    ('CS301', 1, 'Transactions and ACID',             'CS301demo01', 300, '2026-08-11', 'Atomicity, consistency, isolation, durability; commit and rollback.'),
-    ('CS301', 2, 'Concurrency Control and Locking',   'CS301demo02', 305, '2026-08-18', 'Schedules, serializability, two-phase locking, deadlocks in a DBMS.'),
-    ('CS301', 3, 'Normalization: 1NF to BCNF',        'CS301demo03', 315, '2026-08-25', 'Functional dependencies, update anomalies and the normal forms.'),
-    ('CS302', 1, 'Processes and CPU Scheduling',      'CS302demo01', 300, '2026-08-12', 'Process states, context switches, FCFS, SJF and round robin.'),
-    ('CS302', 2, 'Deadlocks',                         'CS302demo02', 320, '2026-08-19', 'Coffman conditions, prevention, avoidance with the banker''s algorithm, detection.'),
-    ('CS302', 3, 'Virtual Memory and Paging',         'CS302demo03', 310, '2026-08-26', 'Page tables, TLBs, page faults and replacement policies.'),
-    ('CS303', 1, 'Linear Regression and Gradient Descent', 'CS303demo01', 300, '2026-08-13', 'Least squares, the loss surface and learning rates.'),
-    ('CS303', 2, 'Overfitting and Regularization',    'CS303demo02', 285, '2026-08-20', 'Bias and variance, validation sets, L1/L2 penalties.'),
-    ('CS303', 3, 'Evaluating Classifiers',            'CS303demo03', 285, '2026-08-27', 'Accuracy, precision, recall, F1 and ROC curves.')
+    ('CS301', 1, 'Transactions and ACID',             'GAe5oB742dw',  297, '2026-08-11', 'Atomicity, consistency, isolation, durability; commit and rollback.'),
+    ('CS301', 2, 'Concurrency Control and Locking',   'gB7qazeSD3k',  630, '2026-08-18', 'Schedules, serializability, two-phase locking, deadlocks in a DBMS.'),
+    ('CS301', 3, 'Normalization: 1NF to BCNF',        'GFQaEYEc8_8', 1714, '2026-08-25', 'Functional dependencies, update anomalies and the normal forms.'),
+    ('CS302', 1, 'Processes and CPU Scheduling',      'EWkQl0n0w5M',  614, '2026-08-12', 'Process states, context switches, FCFS, SJF and round robin.'),
+    ('CS302', 2, 'Deadlocks',                         'UVo9mGARkhQ',  945, '2026-08-19', 'Coffman conditions, prevention, avoidance with the banker''s algorithm, detection.'),
+    ('CS302', 3, 'Virtual Memory and Paging',         'fGP6VHxqkIM',  473, '2026-08-26', 'Page tables, TLBs, page faults and replacement policies.'),
+    ('CS303', 1, 'Linear Regression and Gradient Descent', 'sDv4f4s2SB8', 1434, '2026-08-13', 'Least squares, the loss surface and learning rates.'),
+    ('CS303', 2, 'Overfitting and Regularization',    'EuBBz3bI-aA',  396, '2026-08-20', 'Bias and variance, validation sets, L1/L2 penalties.'),
+    ('CS303', 3, 'Evaluating Classifiers',            '4jRBRDbJemM',  977, '2026-08-27', 'Accuracy, precision, recall, F1 and ROC curves.')
 ) AS v(code, lecture_no, title, video, duration_sec, delivered_on, description)
 JOIN course co            ON co.code = v.code
 JOIN course_instructor ci ON ci.course_id = co.course_id;
