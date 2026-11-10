@@ -23,6 +23,7 @@ Next.js and TypeScript; PostgreSQL 16 with pgvector; local `all-MiniLM-L6-v2` em
 ### Run the app
 
 ```bash
+pip install -r requirements.txt
 cp .env.example .env.local                      # replace every change-me and set AUTH_SECRET
 docker compose --env-file .env.local up -d      # PostgreSQL 16 + pgvector on localhost:5432
 npm install
@@ -30,6 +31,8 @@ npm run db:migrate
 npm run db:seed
 npm run dev                                     # http://localhost:3000
 ```
+
+To auto-fill lecture details or import a YouTube playlist, enable the [YouTube Data API v3](https://console.cloud.google.com/apis/api/youtube.googleapis.com/) in a Google Cloud project, create an API key, and set `YOUTUBE_API_KEY` in `.env.local`. These lookups are optional; lecture details can still be entered manually without a key.
 
 `db:seed` downloads the MiniLM model on first use. It expects a freshly migrated database; run `npm run db:reset` before reseeding.
 
