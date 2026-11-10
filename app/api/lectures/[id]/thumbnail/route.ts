@@ -12,10 +12,11 @@ export const dynamic = "force-dynamic";
 const PLACEHOLDER = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="#e5e7eb"/><circle cx="160" cy="90" r="30" fill="#9ca3af"/><path d="M151 74l26 16-26 16z" fill="#f9fafb"/></svg>`;
 const placeholder = () => new Response(PLACEHOLDER, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "private, max-age=300" } });
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi();
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return placeholder();
   try {
     const videoId = await withUser(session.user.id, async (c) => {
