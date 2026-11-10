@@ -3,6 +3,7 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logout } from "@/app/actions/auth";
 import { withUser } from "@/lib/db";
+import NavLinks from "@/app/NavLinks";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,24 +38,20 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/search" className="logo">
               Rewound
             </Link>
-            {session && (
-              <nav className="nav">
-                <Link href="/search">Search</Link>
-                {role === "student" && <Link href="/requests">My requests</Link>}
-                {role === "instructor" && <Link href="/instructor/courses">My courses</Link>}
-                {(role === "instructor" || role === "admin") && (
-                  <Link href="/inbox" className="nav-badge-link">
-                    Inbox
-                    {pending > 0 && <span className="badge">{pending}</span>}
-                  </Link>
-                )}
-                {role === "admin" && <Link href="/admin/courses">Courses</Link>}
-                {role === "admin" && <Link href="/admin/users">Users</Link>}
-                {role === "admin" && <Link href="/admin/enrollments">Enrollments</Link>}
-                {role === "admin" && <Link href="/admin/requests">Requests</Link>}
-                {role === "admin" && <Link href="/analytics">Analytics</Link>}
-              </nav>
-            )}
+            {session && <NavLinks items={[
+              { href: "/search", label: "Search" },
+              ...(role === "student" ? [{ href: "/courses", label: "My courses" }] : []),
+              ...(role === "student" ? [{ href: "/requests", label: "My requests" }] : []),
+              ...(role === "instructor" ? [{ href: "/instructor/courses", label: "My courses" }] : []),
+              ...(role === "instructor" || role === "admin" ? [{ href: "/inbox", label: "Inbox", badge: pending }] : []),
+              ...(role === "admin" ? [
+                { href: "/admin/courses", label: "Courses" },
+                { href: "/admin/users", label: "Users" },
+                { href: "/admin/enrollments", label: "Enrollments" },
+                { href: "/admin/requests", label: "Requests" },
+                { href: "/analytics", label: "Analytics" },
+              ] : []),
+            ]} />}
             {session && (
               <div className="who">
                 <span>{session.user.name}</span>

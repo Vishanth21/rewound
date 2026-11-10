@@ -48,6 +48,7 @@ export default function LecturePlayer({ videoId, start, chunks: initialChunks, c
   const [chunks, setChunks] = useState(initialChunks);
   const [current, setCurrent] = useState(() => activeIndex(initialChunks, start));
   const [videoError, setVideoError] = useState(false);
+  const [transcriptQuery, setTranscriptQuery] = useState("");
   const [editing, setEditing] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [saveMsg, setSaveMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -55,6 +56,10 @@ export default function LecturePlayer({ videoId, start, chunks: initialChunks, c
   const player = useRef<YTPlayer | null>(null);
   const list = useRef<HTMLDivElement>(null);
   const following = useRef(true);
+  const normalizedQuery = transcriptQuery.trim().toLocaleLowerCase();
+  const visibleChunks = chunks
+    .map((chunk, index) => ({ chunk, index }))
+    .filter(({ chunk }) => !normalizedQuery || chunk.text.toLocaleLowerCase().includes(normalizedQuery));
 
   useEffect(() => {
     let cancelled = false;
@@ -136,8 +141,17 @@ export default function LecturePlayer({ videoId, start, chunks: initialChunks, c
         <div style={{ padding: "14px 16px", borderBottom: "1px solid var(--border)" }}>
           <h2 style={{ margin: 0 }}>Transcript</h2>
           <p className="muted small" style={{ margin: 0 }}>
-            {chunks.length} passages · click one to jump to it
+            {normalizedQuery ? `${visibleChunks.length} of ${chunks.length} passages match · click one to jump to it` : `${chunks.length} passages · click one to jump to it`}
           </p>
+          <label style={{ display: "block", marginTop: 10 }}>
+            <input
+              type="search"
+              aria-label="Search this lecture's transcript"
+              placeholder="Search this transcript…"
+              value={transcriptQuery}
+              onChange={(e) => setTranscriptQuery(e.target.value)}
+            />
+          </label>
         </div>
         <div
           className="transcript"
@@ -145,7 +159,7 @@ export default function LecturePlayer({ videoId, start, chunks: initialChunks, c
           onWheel={() => (following.current = false)}
           onTouchMove={() => (following.current = false)}
         >
-          {chunks.map((c, i) =>
+          {visibleChunks.map(({ chunk: c, index: i }) =>
             editing === c.chunkId ? (
               <div key={c.chunkId} className="chunk active" data-idx={i}>
                 <span className="ts">{mmss(c.startSec)}</span>
@@ -187,6 +201,9 @@ export default function LecturePlayer({ videoId, start, chunks: initialChunks, c
                 </div>
               </div>
             ),
+          )}
+          {normalizedQuery && visibleChunks.length === 0 && (
+            <p className="muted small" style={{ padding: 16 }}>No transcript passages match “{transcriptQuery.trim()}”.</p>
           )}
         </div>
       </div>
