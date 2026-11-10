@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-export default function RequestAccess({ lectureId, title }: { lectureId: number; title: string }) {
+export default function RequestAccess({ lectureId, title, onSent }: { lectureId: number; title: string; onSent?: () => void }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [state, setState] = useState<{ kind: "idle" | "sending" | "done" | "error"; msg?: string }>({ kind: "idle" });
@@ -26,6 +26,7 @@ export default function RequestAccess({ lectureId, title }: { lectureId: number;
       dialog.current?.close();
       setOpen(false);
       setState({ kind: "done" });
+      onSent?.();
     } catch (e) {
       setState({ kind: "error", msg: (e as Error).message });
     }
