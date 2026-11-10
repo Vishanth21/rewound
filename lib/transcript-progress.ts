@@ -1,5 +1,5 @@
 export type TranscriptProgress = {
-  stage: "fetching" | "chunking" | "embedding" | "done" | "error";
+  stage: "fetching" | "chunking" | "model" | "embedding" | "done" | "error";
   message: string;
   status?: "chunked" | "indexed";
   cues?: number;
