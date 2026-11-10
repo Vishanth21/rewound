@@ -39,7 +39,7 @@ function fetchCaptions(videoId: string): Promise<FetchedCaptions> {
     });
     child.stderr.on("data", (chunk: string) => { stderr = (stderr + chunk).slice(-4000); });
     child.on("error", (error) => {
-      reject(error.code === "ENOENT"
+      reject((error as NodeJS.ErrnoException).code === "ENOENT"
         ? new Error("Python was not found. Install Python and youtube-transcript-api; see README.md.")
         : error);
     });

@@ -6,6 +6,7 @@
 // embedding runs in Node, because the model runs here. If embedding fails the transcript is
 // left as 'chunked' and can be retried with "Re-embed".
 import { requireApi, isResponse } from "@/lib/guard";
+import { withUser } from "@/lib/db";
 import { badRequest, dbErrorResponse } from "@/lib/http";
 import { parseId } from "@/lib/manage";
 import { parseTranscript, TranscriptParseError } from "@/lib/transcript-parse";
