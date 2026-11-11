@@ -13,10 +13,11 @@ export const dynamic = "force-dynamic";
 
 const Body = z.object({ text: z.string().trim().min(1, "The passage cannot be blank.").max(4000) });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid passage id.");
   const body = Body.safeParse(await req.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0].message);

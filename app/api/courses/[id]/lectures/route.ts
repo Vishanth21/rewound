@@ -10,10 +10,11 @@ import { parseYouTubeId } from "@/lib/youtube";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid course id.");
   try {
     const rows = await withUser(session.user.id, async (c) => (await c.query("SELECT * FROM course_lectures($1)", [id])).rows);
@@ -32,10 +33,11 @@ const Create = z.object({
   description: z.string().trim().max(1000).nullish(),
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
-  const courseId = parseId(params.id);
+  const { id: rawId } = await params;
+  const courseId = parseId(rawId);
   if (!courseId) return badRequest("Invalid course id.");
   const body = Create.safeParse(await req.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0].message);

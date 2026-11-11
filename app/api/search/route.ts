@@ -25,6 +25,7 @@ type Result = {
   lectureNo: number;
   title: string;
   locked: boolean;
+  pending: boolean;
   score: number;
   passages: Passage[];
 };
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
         for (const r of rows) {
           const res: Result = byLecture.get(r.lecture_id) ?? {
             lectureId: r.lecture_id, courseCode: r.course_code, lectureNo: r.lecture_no, title: r.lecture_title,
-            locked: r.is_locked, score: r.distance, passages: [],
+            locked: r.is_locked, pending: false, score: r.distance, passages: [],
           };
           res.passages.push({ chunkId: r.chunk_id === null ? null : Number(r.chunk_id), startSec: r.start_sec === null ? null : Number(r.start_sec), text: r.snippet, distance: r.distance });
           res.score = Math.min(res.score, r.distance);
@@ -60,13 +61,21 @@ export async function GET(req: Request) {
         for (const r of rows) {
           // Keyword results have no locked disclosure; the lecture page loads the video itself.
           byLecture.set(r.lecture_id, {
-            lectureId: r.lecture_id, courseCode: r.course_code, lectureNo: r.lecture_no, title: r.lecture_title, locked: false, score: r.rank,
+            lectureId: r.lecture_id, courseCode: r.course_code, lectureNo: r.lecture_no, title: r.lecture_title, locked: false, pending: false, score: r.rank,
             passages: [{ chunkId: null, startSec: Number(r.start_sec), text: r.snippet, distance: null }],
           });
         }
       }
       let list = [...byLecture.values()];
       if (course) list = list.filter((r) => r.courseCode === course.toUpperCase()).slice(0, LIMIT);
+      if (session.user.role === "student" && list.length > 0) {
+        const pendingRows = await c.query(
+          "SELECT lecture_id FROM access_request WHERE student_id = $1 AND status = 'pending' AND lecture_id = ANY($2::int[])",
+          [session.user.id, list.map((r) => r.lectureId)],
+        );
+        const pendingIds = new Set(pendingRows.rows.map((r) => Number(r.lecture_id)));
+        for (const result of list) result.pending = pendingIds.has(result.lectureId);
+      }
       await c.query("SELECT log_search($1, $2, $3::jsonb)", [
         q, mode, JSON.stringify(list.map((r) => ({ lecture_id: r.lectureId, score: r.score, locked: r.locked }))),
       ]);

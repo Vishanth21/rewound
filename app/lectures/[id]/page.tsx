@@ -11,9 +11,13 @@ export const dynamic = "force-dynamic";
 
 type Chunk = { chunkId: number; seqNo: number; startSec: number; endSec: number; text: string };
 
-export default async function LecturePage({ params, searchParams }: { params: { id: string }; searchParams: { t?: string } }) {
+export default async function LecturePage({ params, searchParams }: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
+}) {
   const session = await requirePage();
-  const id = parseId(params.id);
+  const [{ id: rawId }, query] = await Promise.all([params, searchParams]);
+  const id = parseId(rawId);
   if (!id) notFound();
 
   let data;
@@ -64,7 +68,7 @@ export default async function LecturePage({ params, searchParams }: { params: { 
   const chunks: Chunk[] = data.rows.map((r) => ({
     chunkId: Number(r.chunk_id), seqNo: r.seq_no, startSec: Number(r.start_sec), endSec: Number(r.end_sec), text: r.content,
   }));
-  const t = Math.max(0, Math.floor(Number(searchParams.t) || 0));
+  const t = Math.max(0, Math.floor(Number(query.t) || 0));
 
   return (
     <main>

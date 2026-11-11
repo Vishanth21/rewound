@@ -11,10 +11,11 @@ import { parseYouTubeId } from "@/lib/youtube";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi();
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid lecture id.");
   try {
     const rows = await withUser(session.user.id, async (c) => (await c.query("SELECT * FROM get_lecture($1)", [id])).rows);
@@ -39,10 +40,11 @@ const Patch = z
   })
   .partial();
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid lecture id.");
   const body = Patch.safeParse(await req.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0].message);
@@ -75,10 +77,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid lecture id.");
   try {
     return await withUser(session.user.id, async (c) => {

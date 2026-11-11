@@ -42,13 +42,14 @@ const fmt = (iso: string | null) =>
 export default async function AdminRequestsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: Promise<{ status?: string | string[] }>;
 }) {
   const session = await requirePage(["admin"]);
+  const params = await searchParams;
 
   // The filter is a UI convenience only: the view already returns everything the caller
   // may see, so an unexpected value just shows all rows instead of widening access.
-  const wanted = searchParams.status;
+  const wanted = Array.isArray(params.status) ? params.status[0] : params.status;
   const filter: Status | null = wanted === "pending" || wanted === "approved" || wanted === "rejected" ? wanted : null;
 
   const rows: Row[] = await withUser(session.user.id, async (c) =>

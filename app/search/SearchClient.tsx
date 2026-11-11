@@ -10,7 +10,7 @@ import RequestAccess from "./RequestAccess";
 
 type Mode = "semantic" | "keyword";
 type Passage = { chunkId: number | null; startSec: number | null; text: string; distance: number | null };
-type Result = { lectureId: number; courseCode: string; lectureNo: number; title: string; locked: boolean; score: number; passages: Passage[] };
+type Result = { lectureId: number; courseCode: string; lectureNo: number; title: string; locked: boolean; pending: boolean; score: number; passages: Passage[] };
 
 const EXAMPLES = ["how do we stop two transactions overwriting each other", "why does a model do well on training data but badly on new data", "deadlock prevention"];
 
@@ -27,6 +27,7 @@ export default function SearchClient({ role, courses, initial }: {
   const [searched, setSearched] = useState<{ q: string; mode: Mode } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
 
   const run = useCallback(
     async (query: string, m: Mode, c: string) => {
@@ -44,6 +45,7 @@ export default function SearchClient({ role, courses, initial }: {
         const body = await res.json();
         if (!res.ok) throw new Error(body.error ?? "Search failed.");
         setResults(body.results);
+        setPendingIds(new Set(body.results.filter((r: Result) => r.pending).map((r: Result) => r.lectureId)));
         setSearched({ q: text, mode: m });
       } catch (e) {
         setError((e as Error).message);
@@ -191,10 +193,18 @@ export default function SearchClient({ role, courses, initial }: {
                     <span className="course-code">{r.courseCode}</span>
                     Lecture {r.lectureNo} · {r.title}
                   </h3>
-                  <span className="badge badge-lock">Locked</span>
+                  <span className={`badge ${pendingIds.has(r.lectureId) ? "badge-warn" : "badge-lock"}`}>
+                    {pendingIds.has(r.lectureId) ? "Pending" : "Locked"}
+                  </span>
                 </div>
                 <p className="clamp muted">{r.passages[0]?.text}</p>
-                {role === "student" && <RequestAccess lectureId={r.lectureId} title={r.title} />}
+                {role === "student" && !pendingIds.has(r.lectureId) && (
+                  <RequestAccess
+                    lectureId={r.lectureId}
+                    title={r.title}
+                    onSent={() => setPendingIds((current) => new Set(current).add(r.lectureId))}
+                  />
+                )}
               </div>
             </article>
           ))}

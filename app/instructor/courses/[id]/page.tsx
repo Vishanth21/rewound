@@ -8,9 +8,10 @@ import CourseManager from "./CourseManager";
 
 export const dynamic = "force-dynamic";
 
-export default async function CourseManagePage({ params }: { params: { id: string } }) {
+export default async function CourseManagePage({ params }: { params: Promise<{ id: string }> }) {
   const session = await requirePage(["instructor", "admin"]);
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) notFound();
 
   const { course, allowed } = await withUser(session.user.id, async (c) => ({

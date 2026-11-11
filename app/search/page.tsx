@@ -13,8 +13,9 @@ const COURSES_SQL = {
             WHERE e.student_id = $1 ORDER BY co.code`,
 };
 
-export default async function SearchPage({ searchParams }: { searchParams: { q?: string; mode?: string; course?: string } }) {
+export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string; mode?: string; course?: string }> }) {
   const session = await requirePage();
+  const params = await searchParams;
   const { role, id } = session.user;
   const courses = await withUser(id, async (c) => {
     const sql = COURSES_SQL[role];
@@ -35,9 +36,9 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
         role={role}
         courses={courses}
         initial={{
-          q: searchParams.q ?? "",
-          mode: searchParams.mode === "keyword" ? "keyword" : "semantic",
-          course: searchParams.course ?? "",
+          q: params.q ?? "",
+          mode: params.mode === "keyword" ? "keyword" : "semantic",
+          course: params.course ?? "",
         }}
       />
     </main>

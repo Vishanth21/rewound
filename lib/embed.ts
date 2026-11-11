@@ -15,18 +15,62 @@ const BATCH = 16;
 
 let extractor: Promise<FeatureExtractionPipeline> | null = null;
 
-async function loadModel(): Promise<FeatureExtractionPipeline> {
-  const { pipeline } = await import("@huggingface/transformers");
+export type EmbedModelProgress = {
+  status: string;
+  progress?: number;
+  loaded?: number;
+  total?: number;
+  file?: string;
+};
+
+export type EmbedModelProgressCallback = (progress: EmbedModelProgress) => void;
+
+async function loadModel(onProgress?: EmbedModelProgressCallback): Promise<FeatureExtractionPipeline> {
+  const { pipeline, env } = await import("@huggingface/transformers");
+  // Vercel functions can only write to temporary storage. Keep the downloaded model in /tmp
+  // when no explicit cache path is configured; local environments keep the library default.
+  const cacheDir = process.env.TRANSFORMERS_CACHE_DIR || (process.env.VERCEL ? "/tmp/transformers-cache" : undefined);
+  if (cacheDir) env.cacheDir = cacheDir;
+
   // Narrowed signature: the library's overloads are too complex for tsc to resolve here.
-  const load = pipeline as unknown as (task: "feature-extraction", model: string) => Promise<FeatureExtractionPipeline>;
-  return load("feature-extraction", MODEL_ID);
+  const load = pipeline as unknown as (
+    task: "feature-extraction",
+    model: string,
+    options: { progress_callback?: EmbedModelProgressCallback },
+  ) => Promise<FeatureExtractionPipeline>;
+  return load("feature-extraction", MODEL_ID, { progress_callback: onProgress });
 }
 
-export async function embed(texts: string[]): Promise<number[][]> {
+function isTransientModelError(error: unknown): boolean {
+  const message = error instanceof Error ? `${error.message} ${String(error.cause ?? "")}` : String(error);
+  return /\b429\b|too many requests|rate.?limit|econnreset|econnrefused|etimedout|fetch failed|network/i.test(message);
+}
+
+async function loadModelWithRetry(onProgress?: EmbedModelProgressCallback): Promise<FeatureExtractionPipeline> {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await loadModel(onProgress);
+    } catch (error) {
+      if (attempt >= 3 || !isTransientModelError(error)) throw error;
+      const waitMs = attempt * 1500;
+      onProgress?.({ status: "retry", progress: attempt, total: 3, file: `${Math.ceil(waitMs / 1000)}s` });
+      await new Promise((resolve) => setTimeout(resolve, waitMs));
+    }
+  }
+}
+
+export async function embed(texts: string[], onModelProgress?: EmbedModelProgressCallback): Promise<number[][]> {
   if (texts.length === 0) return [];
   if (EMBED_BACKEND === "hash") return texts.map(hashEmbed);
 
-  extractor ??= loadModel();
+  if (!extractor) {
+    const pending = loadModelWithRetry(onModelProgress);
+    extractor = pending;
+    // A failed download should not poison the process-wide singleton; later calls can retry.
+    void pending.catch(() => {
+      if (extractor === pending) extractor = null;
+    });
+  }
   const model = await extractor;
   const out: number[][] = [];
   for (let i = 0; i < texts.length; i += BATCH) {

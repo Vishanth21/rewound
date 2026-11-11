@@ -17,10 +17,11 @@ const Patch = z
   })
   .partial();
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid course id.");
   const body = Patch.safeParse(await req.json().catch(() => null));
   if (!body.success) return badRequest(body.error.issues[0].message);
@@ -50,10 +51,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["admin"]);
   if (isResponse(session)) return session;
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid course id.");
   try {
     const r = await withUser(session.user.id, (c) => c.query("DELETE FROM course WHERE course_id = $1", [id]));

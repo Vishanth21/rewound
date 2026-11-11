@@ -21,11 +21,12 @@ const Decision = z.object({
   days: z.coerce.number().int().min(1).max(90).default(7),
 });
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await requireApi(["instructor", "admin"]);
   if (isResponse(session)) return session;
 
-  const id = parseId(params.id);
+  const { id: rawId } = await params;
+  const id = parseId(rawId);
   if (!id) return badRequest("Invalid request id.");
 
   const parsed = Decision.safeParse(await req.json().catch(() => null));
