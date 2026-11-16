@@ -28,12 +28,15 @@ FROM (VALUES
     ('CS301', 1, 'Transactions and ACID',             'GAe5oB742dw',  297, '2026-08-11', 'Atomicity, consistency, isolation, durability; commit and rollback.'),
     ('CS301', 2, 'Concurrency Control and Locking',   'gB7qazeSD3k',  630, '2026-08-18', 'Schedules, serializability, two-phase locking, deadlocks in a DBMS.'),
     ('CS301', 3, 'Normalization: 1NF to BCNF',        'GFQaEYEc8_8', 1714, '2026-08-25', 'Functional dependencies, update anomalies and the normal forms.'),
-    ('CS302', 1, 'Processes and CPU Scheduling',      'EWkQl0n0w5M',  614, '2026-08-12', 'Process states, context switches, FCFS, SJF and round robin.'),
+    ('CS301', 4, 'Indexing and B-Trees',              'pQQVpROjOgU',  555, '2026-09-01', 'Full scans versus indexes, B+ tree lookups, splits, and the read/write cost of an index.'),
+    ('CS302', 1, 'Processes and CPU Scheduling',     'EWkQl0n0w5M',  614, '2026-08-12', 'Process states, context switches, FCFS, SJF and round robin.'),
     ('CS302', 2, 'Deadlocks',                         'UVo9mGARkhQ',  945, '2026-08-19', 'Coffman conditions, prevention, avoidance with the banker''s algorithm, detection.'),
     ('CS302', 3, 'Virtual Memory and Paging',         'fGP6VHxqkIM',  473, '2026-08-26', 'Page tables, TLBs, page faults and replacement policies.'),
+    ('CS302', 4, 'Mutexes and Semaphores',            'sewsB0cWg7A',  419, '2026-09-02', 'Race conditions, mutex ownership, binary and counting semaphores, and deadlock from lock ordering.'),
     ('CS303', 1, 'Linear Regression and Gradient Descent', 'sDv4f4s2SB8', 1434, '2026-08-13', 'Least squares, the loss surface and learning rates.'),
     ('CS303', 2, 'Overfitting and Regularization',    'EuBBz3bI-aA',  396, '2026-08-20', 'Bias and variance, validation sets, L1/L2 penalties.'),
-    ('CS303', 3, 'Evaluating Classifiers',            '4jRBRDbJemM',  977, '2026-08-27', 'Accuracy, precision, recall, F1 and ROC curves.')
+    ('CS303', 3, 'Evaluating Classifiers',            '4jRBRDbJemM',  977, '2026-08-27', 'Accuracy, precision, recall, F1 and ROC curves.'),
+    ('CS303', 4, 'Cross-Validation',                  'u_ENsnyRMkY', 2164, '2026-09-03', 'Validation sets, k-fold cross-validation, data leakage and tuning hyperparameters.')
 ) AS v(code, lecture_no, title, video, duration_sec, delivered_on, description)
 JOIN course co            ON co.code = v.code
 JOIN course_instructor ci ON ci.course_id = co.course_id;
