@@ -33,6 +33,14 @@ const REQUESTS: DemoRequest[] = [
   // Chitra (CS303) asks Iyer for a CS302 lecture and it stays PENDING, so /inbox has something
   // to decide in the demo.
   ["chitra@pes.edu", "CS302", 1, true, -1, "Revision for the OS quiz next week."],
+  // Ben asks Rao for the new CS301 indexing lecture and is approved for a week.
+  ["ben@pes.edu", "CS301", 4, true, 7, "Need B-tree internals for my database mini-project."],
+  // Chitra also wants it; left PENDING so Dr. Rao has a live decision in /inbox.
+  ["chitra@pes.edu", "CS301", 4, true, -1, "Want to understand how indexes speed up queries before the DBMS lab."],
+  // Chitra (CS303 only) asks Iyer for the new CS302 semaphores lecture; left PENDING for Dr. Iyer's /inbox.
+  ["chitra@pes.edu", "CS302", 4, true, -1, "Need semaphores for the OS assignment on synchronization."],
+  // Asha asks Menon for the new CS303 cross-validation lecture; left PENDING for Dr. Menon's /inbox.
+  ["asha@pes.edu", "CS303", 4, true, -1, "Need cross-validation for my project report."],
 ];
 const DECIDER_REJECTS = "admin@pes.edu"; // rejected requests are decided by the admin
 
@@ -40,7 +48,7 @@ type Target = { lecture_id: number; course_id: number; code: string; lecture_no:
 
 const EXPECTED_USERS = 7;
 const EXPECTED_COURSES = 3;
-const EXPECTED_LECTURES = 9;
+const EXPECTED_LECTURES = 12;
 const EXPECTED_ENROLLMENTS = 5;
 
 // user_id by e-mail. Runs on the app pool (step 4 is after the owner connection is closed);
@@ -128,7 +136,7 @@ async function main() {
         throw error;
       }
       console.log("users: 7 (password for all: demo1234)");
-      console.log("courses + lectures: 9 lectures");
+      console.log("courses + lectures: 12 lectures");
       console.log("enrollments: 5");
     } else if (
       counts.users === EXPECTED_USERS && counts.courses === EXPECTED_COURSES &&

@@ -1,0 +1,71 @@
+1
+00:00:02,000 --> 00:00:28,000
+Today we ask a simple question: how do we know whether a model will work on data it has never seen? The answer is validation, and the most common tool for it is cross-validation.
+
+2
+00:00:32,000 --> 00:00:58,000
+Start with overfitting. A model that memorizes the training set has near zero training error, but it fails on new data. Training error alone tells us nothing about how well the model generalizes.
+
+3
+00:01:02,000 --> 00:01:28,000
+The simplest fix is a validation set. We hold back part of the data, train on the rest, and measure the error on the held out part. That error is our estimate of performance on unseen data.
+
+4
+00:01:32,000 --> 00:01:58,000
+A single split has a weakness. If we get an unlucky split, the estimate is noisy, and with a small dataset we also waste data that could have been used for training.
+
+5
+00:02:02,000 --> 00:02:28,000
+K-fold cross-validation fixes this. Split the data into k equal folds. Train on k minus one folds, validate on the remaining one, and repeat k times so every fold is the validation set exactly once.
+
+6
+00:02:32,000 --> 00:02:58,000
+Then we average the k validation errors. The average is a more stable estimate than any single split, and the spread across folds tells us how much the estimate varies.
+
+7
+00:03:02,000 --> 00:03:28,000
+Common choices are five or ten folds. Leave one out cross-validation takes k equal to the number of samples. It uses almost all the data for training each time but is expensive to run.
+
+8
+00:03:32,000 --> 00:03:58,000
+This connects directly to the bias variance tradeoff. A very flexible model has low bias but high variance, a very simple model has high bias but low variance, and cross-validation helps us find the balance.
+
+9
+00:04:02,000 --> 00:04:28,000
+We use it to choose hyperparameters. For a regularized model, we try several values of the penalty strength, compute the cross-validated error for each, and pick the value with the lowest error.
+
+10
+00:04:32,000 --> 00:04:58,000
+Recall that L2 regularization shrinks the weights and L1 pushes some weights to exactly zero. Too weak a penalty overfits, too strong a penalty underfits, and the validation curve shows both failure modes.
+
+11
+00:05:02,000 --> 00:05:28,000
+Learning curves are a related diagnostic. Plot training and validation error against the training set size. If both errors are high and close together, the model is underfitting and needs more capacity.
+
+12
+00:05:32,000 --> 00:05:58,000
+If the training error is low but the validation error is much higher, the model is overfitting. More data, a simpler model or stronger regularization will help.
+
+13
+00:06:02,000 --> 00:06:28,000
+A common mistake is data leakage. If you scale the features or select features using the whole dataset before splitting, information from the validation fold leaks into training and the estimate is too optimistic.
+
+14
+00:06:32,000 --> 00:06:58,000
+The fix is to put every preprocessing step inside the cross-validation loop, so each fold learns its scaling and feature choices from its training portion only.
+
+15
+00:07:02,000 --> 00:07:28,000
+For classification with imbalanced classes, use stratified folds so each fold keeps the same class proportions as the full dataset. Otherwise a fold might contain no positive examples at all.
+
+16
+00:07:32,000 --> 00:07:58,000
+When we are tuning hyperparameters and also want an honest final estimate, we need a separate test set that is never touched during tuning, or a nested cross-validation loop.
+
+17
+00:08:02,000 --> 00:08:28,000
+Keep the roles straight. The training data fits the parameters, the validation data picks the hyperparameters, and the test data gives the final unbiased report of performance.
+
+18
+00:08:32,000 --> 00:08:58,000
+To summarize: cross-validation gives a stable estimate of generalization error, it guides the choice between underfitting and overfitting, and it only works if the validation data stays separate from training.
