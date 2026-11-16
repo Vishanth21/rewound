@@ -1,0 +1,71 @@
+1
+00:00:02,000 --> 00:00:28,000
+Today we look at indexes, the structure that lets a database find one row among millions without reading the whole table. Without an index every query is a full table scan.
+
+2
+00:00:32,000 --> 00:00:58,000
+Imagine a table of a million students and the query: find the student with roll number 48213. With no index the engine reads every page of the table and checks every row. That cost grows linearly with the table size.
+
+3
+00:01:02,000 --> 00:01:28,000
+An index is a separate, sorted structure that maps a key to the location of its row, just like the index at the back of a textbook maps a topic to a page number.
+
+4
+00:01:32,000 --> 00:01:58,000
+Most relational systems implement the index as a B-tree, or more precisely a B plus tree. It is a balanced tree, which means every lookup walks the same number of levels from the root to a leaf.
+
+5
+00:02:02,000 --> 00:02:28,000
+Each node of the tree is one disk page and holds many keys, often hundreds. Because the fanout is so large, a tree over a hundred million rows is only three or four levels deep.
+
+6
+00:02:32,000 --> 00:02:58,000
+A lookup starts at the root, compares the search key against the separator keys in the node, follows the matching pointer down, and repeats until it reaches a leaf. Three or four page reads instead of a million.
+
+7
+00:03:02,000 --> 00:03:28,000
+In a B plus tree all the actual row pointers live in the leaf level, and the leaves are linked together in sorted order. That makes range queries cheap: find the first key, then walk along the leaves.
+
+8
+00:03:32,000 --> 00:03:58,000
+Inserts keep the tree balanced. When a leaf page is full, it splits into two pages and a new separator key is pushed up to the parent. If the parent is full it splits as well, and the split can reach the root.
+
+9
+00:04:02,000 --> 00:04:28,000
+Deletes work the other way. If a page becomes too empty it is merged with a neighbour or borrows keys from it, so the tree never degrades into long thin branches.
+
+10
+00:04:32,000 --> 00:04:58,000
+Indexes are not free. Every insert, update or delete must also maintain every index on that table, and each index takes disk space. An index speeds reads and slows writes.
+
+11
+00:05:02,000 --> 00:05:28,000
+A concurrency note that connects to our last lecture. When many transactions modify the same index, they compete for locks on index pages, so a badly chosen hot index can become a locking bottleneck.
+
+12
+00:05:32,000 --> 00:05:58,000
+A composite index covers several columns, for example last name and then first name. It helps queries that filter on the leading column, but not queries that filter only on the second column.
+
+13
+00:06:02,000 --> 00:06:28,000
+A clustered index decides the physical order of the rows themselves, so a table can have only one. A secondary index stores the key plus a pointer back to the row.
+
+14
+00:06:32,000 --> 00:06:58,000
+The query planner decides whether to use an index. If the query will return most of the table anyway, a sequential scan is faster than jumping around the index, and the planner will choose the scan.
+
+15
+00:07:02,000 --> 00:07:28,000
+You can see the decision by running the explain command. It prints the plan and tells you whether the engine chose an index scan or a sequential scan, along with the estimated cost.
+
+16
+00:07:32,000 --> 00:07:58,000
+Hash indexes are a different option. They answer equality lookups in constant time, but they cannot serve range queries or sorted output, which is why the B-tree is the default.
+
+17
+00:08:02,000 --> 00:08:28,000
+Good practice: index the columns you filter, join and sort on, avoid indexing columns that change constantly, and drop indexes that no query uses.
+
+18
+00:08:32,000 --> 00:08:58,000
+To summarize: a B plus tree keeps keys sorted and balanced so a lookup takes a handful of page reads, and every index trades faster reads for slower writes and extra storage.
